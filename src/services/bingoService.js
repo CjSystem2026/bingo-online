@@ -180,6 +180,46 @@ class BingoService {
     });
     return players;
   }
+
+  /**
+   * Identifica qué jugadores están a 1 o 2 números de ganar.
+   * @returns {Array<Object>} Lista de { phone, missing }
+   */
+  getApproachingWinners() {
+    const approaching = [];
+    this.userCards.forEach((userData) => {
+      let minMissingForUser = 5;
+      
+      userData.cards.forEach((cardSet) => {
+        const { card, marked } = cardSet;
+        
+        // Revisar filas
+        for (let r = 0; r < 5; r++) {
+          let missing = 0;
+          for (let c = 0; c < 5; c++) {
+            if (card[r][c] !== 'FREE' && !marked[r][c]) missing++;
+          }
+          if (missing < minMissingForUser) minMissingForUser = missing;
+        }
+        
+        // Revisar columnas
+        for (let c = 0; c < 5; c++) {
+          let missing = 0;
+          for (let r = 0; r < 5; r++) {
+            if (card[r][c] !== 'FREE' && !marked[r][c]) missing++;
+          }
+          if (missing < minMissingForUser) minMissingForUser = missing;
+        }
+      });
+
+      if (minMissingForUser === 1 || minMissingForUser === 2) {
+        approaching.push({ phone: userData.phone, missing: minMissingForUser });
+      }
+    });
+    
+    // Ordenar para mostrar primero a los que les falta solo 1
+    return approaching.sort((a, b) => a.missing - b.missing);
+  }
 }
 
 module.exports = new BingoService();

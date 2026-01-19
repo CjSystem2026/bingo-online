@@ -1,5 +1,6 @@
 const bingoService = require('../services/bingoService');
 const orderService = require('../services/orderService');
+const { clearAllHashes } = require('../utils/hashStore');
 
 function emitBingoStats(io) {
   const totalCards = orderService.getApprovedOrders().size;
@@ -25,19 +26,24 @@ module.exports = (io) => {
       // Sincronizar lista de jugadores actual con el nuevo admin conectado
       socket.emit('admin:player_list', bingoService.getPlayers());
     } else {
-      // Buscar el teléfono asociado al token en orderService
+      // VALIDACIÓN: Buscar el teléfono asociado al token en orderService
+      const approvedOrders = orderService.getApprovedOrders();
+      const order = token ? approvedOrders.get(token) : null;
+
+      // Si no hay token válido y no es admin, no puede jugar
+      if (!order) {
+        console.log(`[BINGO] Conexión rechazada: Token inválido o ausente (${socket.id})`);
+        socket.emit('bingo:unauthorized', 'Tu sesión ha expirado o el juego se ha reiniciado.');
+        return;
+      }
+
+      userPhone = order.phone;
       let totalCardsToAssign = 1;
-      if (token) {
-        const approvedOrders = orderService.getApprovedOrders();
-        const order = approvedOrders.get(token);
-        if (order) {
-          userPhone = order.phone;
-          // Buscar cuántas cartillas aprobadas tiene este número
-          const status = orderService.checkStatus(userPhone);
-          if (status.status === 'approved') {
-            totalCardsToAssign = status.items.length;
-          }
-        }
+      
+      // Buscar cuántas cartillas aprobadas tiene este número en total
+      const status = orderService.checkStatus(userPhone);
+      if (status.status === 'approved') {
+        totalCardsToAssign = status.items.length;
       }
 
       // Asignar todas las cartillas que le corresponden
@@ -58,14 +64,33 @@ module.exports = (io) => {
       emitBingoStats(io); // Sincronizar estadísticas con todos
     }
 
+    // Escuchar reacciones rápidas
+    socket.on('bingo:reaction', (reactionText) => {
+      if (!isAdmin && userPhone) {
+        // Enviar a todos, incluyendo el número del remitente (protegido)
+        const maskedPhone = userPhone.substring(0, 3) + '***' + userPhone.substring(6);
+        io.emit('bingo:reaction', { 
+          text: reactionText, 
+          sender: maskedPhone 
+        });
+      }
+    });
+
     // Escuchar tanto de admin como de jugador
     socket.on('bingo:call_number', () => handleCallNumber(io));
     socket.on('admin:call_number', () => handleCallNumber(io));
 
-    socket.on('admin:reset_game', () => {
-      // Limpieza TOTAL de jugadores y pedidos
+    socket.on('admin:reset_game', async () => {
+      // Limpieza TOTAL de jugadores, pedidos e historial de imágenes
       bingoService.resetGame(true); 
       orderService.clearAllOrders();
+      
+      try {
+        await clearAllHashes();
+        console.log("[ADMIN] Base de datos de imágenes de pago limpiada.");
+      } catch (err) {
+        console.error("Error al limpiar hashes:", err);
+      }
       
       // Notificar a los admins que la lista ahora está vacía
       io.emit('admin:player_list', []);
@@ -91,6 +116,17 @@ function handleCallNumber(io) {
   const result = bingoService.callNewNumber();
   if (result) {
     io.emit('bingo:new_number', result.number);
+    
+    // Calcular y enviar jugadores a punto de ganar
+    const approaching = bingoService.getApproachingWinners();
+    
+    // Para jugadores: números enmascarados
+    const maskedApproaching = approaching.map(p => ({
+      phone: p.phone.substring(0, 3) + '***' + p.phone.substring(6),
+      missing: p.missing
+    }));
+    io.emit('bingo:approaching', maskedApproaching);
+
     if (result.winner) {
       io.emit('bingo:winner', result.winner);
     }

@@ -37,6 +37,21 @@
                 <h2>Número Actual:</h2>
                 <span id="currentNumber">--</span>
             </div>
+            
+            <div class="reactions-bar">
+                <button class="reaction-btn" onclick="sendReaction('¡BINGO! 🏆')">¡BINGO! 🏆</button>
+                <button class="reaction-btn" onclick="sendReaction('¡Casi! 🤏')">¡Casi! 🤏</button>
+                <button class="reaction-btn" onclick="sendReaction('¡Me falta 1! 😱')">¡Me falta 1! 😱</button>
+                <button class="reaction-btn" onclick="sendReaction('¡Suerte! 🍀')">¡Suerte! 🍀</button>
+                <button class="reaction-btn" onclick="sendReaction('😂')">😂</button>
+            </div>
+        </div>
+
+        <div id="reactionsDisplay"></div>
+
+        <div id="approachingSection" class="approaching-section hidden">
+            <h3>🔥 ¡Jugadores en Zona! 🔥</h3>
+            <div id="approachingList" class="approaching-list"></div>
         </div>
 
         <div class="audio-controls">
@@ -179,9 +194,65 @@
 
         socket.on('bingo:reset', () => {
             localStorage.removeItem('bingo_phone');
+            localStorage.removeItem('bingo_request_token');
             alert('El juego ha sido reiniciado por el administrador. Serás redirigido para una nueva partida.');
             window.location.href = '/';
         });
+
+        socket.on('bingo:unauthorized', (msg) => {
+            localStorage.removeItem('bingo_phone');
+            localStorage.removeItem('bingo_request_token');
+            alert(msg);
+            window.location.href = '/';
+        });
+
+        socket.on('bingo:reaction', (data) => {
+            showFloatingReaction(data.sender, data.text);
+        });
+
+        socket.on('bingo:approaching', (list) => {
+            updateApproachingList(list);
+        });
+
+        function updateApproachingList(list) {
+            const section = document.getElementById('approachingSection');
+            const container = document.getElementById('approachingList');
+            
+            if (list.length === 0) {
+                section.classList.add('hidden');
+                return;
+            }
+
+            section.classList.remove('hidden');
+            container.innerHTML = '';
+
+            list.forEach(p => {
+                const badge = document.createElement('span');
+                badge.className = `approaching-badge missing-${p.missing}`;
+                badge.innerText = `📱 ${p.phone} (¡le falta ${p.missing}!)`;
+                container.appendChild(badge);
+            });
+        }
+
+        function sendReaction(text) {
+            socket.emit('bingo:reaction', text);
+        }
+
+        function showFloatingReaction(sender, text) {
+            const display = document.getElementById('reactionsDisplay');
+            const el = document.createElement('div');
+            el.className = 'floating-reaction';
+            el.innerHTML = `
+                <span class="sender">${sender}</span>
+                <span class="text">${text}</span>
+            `;
+            display.appendChild(el);
+            
+            // Eliminar el elemento después de que termine la animación
+            setTimeout(() => {
+                el.remove();
+            }, 3000);
+        }
 
         function addNumberToDisplay(number) {
             const listItem = document.createElement('li');

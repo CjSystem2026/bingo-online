@@ -48,8 +48,25 @@ function addProcessedHash(hash) {
   });
 }
 
+/**
+ * Clears all processed hashes from the database.
+ * @returns {Promise<void>}
+ */
+function clearAllHashes() {
+  return new Promise((resolve, reject) => {
+    const sql = `DELETE FROM processed_hashes`;
+    db.run(sql, [], (err) => {
+      if (err) {
+        return reject(new Error('Database delete failed: ' + err.message));
+      }
+      resolve();
+    });
+  });
+}
+
 module.exports = {
   calculateFileHash,
   isHashProcessed,
   addProcessedHash,
+  clearAllHashes,
 };

@@ -72,6 +72,15 @@ router.get('/', (req, res) => {
           </div>
 
           <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+          
+          <h2>🔥 Jugadores cerca de Ganar</h2>
+          <div id="approachingMonitor" style="background: #fff9db; padding: 15px; border-radius: 10px; border: 1px solid #fab005; margin-bottom: 20px;">
+            <div id="approachingListAdmin" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;">
+              <em style="color: #999">Nadie en zona todavía...</em>
+            </div>
+          </div>
+
+          <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
           <button class="btn btn-reset" onclick="resetGame()">♻️ REINICIAR TODO EL BINGO</button>
           <p style="font-size: 0.8rem; color: #666; margin-top: 10px;">(El reinicio limpia los números, las marcas y todos los pedidos)</p>
         </div>
@@ -247,6 +256,10 @@ router.get('/', (req, res) => {
           const winnerDisplay = document.getElementById('winnerDisplay');
           if (winnerDisplay) winnerDisplay.style.display = 'none';
 
+          // Limpiar monitor de aproximación
+          const approachingEl = document.getElementById('approachingListAdmin');
+          if (approachingEl) approachingEl.innerHTML = '<em style="color: #999">Nadie en zona todavía...</em>';
+
           // Limpiar tablas de pedidos
           const pendingTbody = document.querySelector('#pendingTable tbody');
           if (pendingTbody) pendingTbody.innerHTML = '<tr class="empty-row"><td colspan="4">No hay pedidos pendientes</td></tr>';
@@ -273,6 +286,30 @@ router.get('/', (req, res) => {
               listEl.innerHTML = '<em style="color: #999">Esperando jugadores...</em>';
             }
           }
+        });
+
+        socket.on('bingo:approaching', (list) => {
+          const listEl = document.getElementById('approachingListAdmin');
+          if (!listEl) return;
+
+          if (list.length === 0) {
+            listEl.innerHTML = '<em style="color: #999">Nadie en zona todavía...</em>';
+            return;
+          }
+
+          listEl.innerHTML = '';
+          list.forEach(p => {
+            const span = document.createElement('span');
+            span.style = 'background: white; padding: 5px 10px; border-radius: 20px; font-size: 0.9rem; border: 1px solid #fab005; font-weight: bold; color: #e67e22;';
+            if (p.missing === 1) {
+              span.style.background = '#ffec99';
+              span.style.boxShadow = '0 0 10px rgba(230, 126, 34, 0.5)';
+              span.innerText = '🔥 ' + p.phone + ' (FALTA 1)';
+            } else {
+              span.innerText = '⭐ ' + p.phone + ' (Falta 2)';
+            }
+            listEl.appendChild(span);
+          });
         });
 
         socket.on('admin:new_order', (order) => {
