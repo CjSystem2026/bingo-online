@@ -374,3 +374,47 @@ footer {
     body { font-size: 18px; }
     .payment-number { font-size: 1.6rem; }
 }
+
+/* Tutorial Video */
+#tutorial {
+    text-align: center;
+}
+
+.video-container {
+    position: relative;
+    max-width: 600px;
+    margin: 0 auto;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    background: #000;
+    cursor: pointer;
+}
+
+.video-container video {
+    width: 100%;
+    display: block;
+}
+
+.video-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 15px 25px;
+    border-radius: 50px;
+    font-weight: 700;
+    font-size: 1.1rem;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    white-space: nowrap;
+}
+
+.video-container.playing-audio .video-overlay {
+    opacity: 0;
+}
