@@ -1,8 +1,14 @@
+# Secrets
+.env
+
 # Dependencies
 /node_modules
 
 # Databases
 /db/database.sqlite
+
+# Uploads
+/public/uploads
 
 # Logs
 logs
