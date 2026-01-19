@@ -20,7 +20,10 @@
     <!-- End Google Tag Manager (noscript) -->
     <header>
         <h1>🎉 Juega Bingo Online y Gana Hoy Mismo</h1>
-        <div class="price-badge">¡Cartilla a solo S/ 5!</div>
+        <div id="countdown-banner" style="background: #fff3cd; color: #856404; padding: 15px; border-radius: 10px; display: inline-block; margin: 10px 0; font-weight: 700; border: 2px solid #ffeeba;">
+            🎮 PRÓXIMO JUEGO: <span id="timer">--:--:--</span>
+        </div>
+        <div class="price-badge" style="display: block; width: fit-content; margin: 20px auto;">¡Cartilla a solo S/ 5!</div>
         <div class="ganancia-header">
             <h2>¡GRANDES PREMIOS PARA EL GANADOR!</h2>
             <div class="ejemplos">
@@ -106,11 +109,47 @@
     </main>
 
     <footer>
-        <p>&copy; 2026 Bingo Online Actualizado - Juega con responsabilidad.</p>
+        <p>&copy; 2026 Bingo Online - Juega con responsabilidad.</p>
         <p>¿Tienes alguna duda o inconveniente? Escríbenos a <a href="mailto:soporte@bingopremium.com" style="color: #fab1a0; text-decoration: none;">soporte@bingopremium.com</a></p>
     </footer>
 
     <script>
+        // Lógica del Contador Regresivo
+        function updateCountdown() {
+            const now = new Date();
+            const target = new Date();
+            
+            // Configurar el objetivo: Hoy a las 9:00 PM (21:00)
+            target.setHours(21, 0, 0, 0);
+
+            // Si ya pasaron las 9 PM de hoy, apuntar a las 9 PM de mañana
+            if (now > target) {
+                target.setDate(target.getDate() + 1);
+            }
+
+            const diff = target - now;
+
+            const h = Math.floor(diff / (1000 * 60 * 60));
+            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const s = Math.floor((diff % (1000 * 60)) / 1000);
+
+            const displayH = h < 10 ? '0' + h : h;
+            const displayM = m < 10 ? '0' + m : m;
+            const displayS = s < 10 ? '0' + s : s;
+
+            document.getElementById('timer').innerText = `${displayH}:${displayM}:${displayS}`;
+            
+            // Si falta poco, cambiar color a alerta
+            if (h === 0 && m < 30) {
+                document.getElementById('countdown-banner').style.background = '#f8d7da';
+                document.getElementById('countdown-banner').style.color = '#721c24';
+                document.getElementById('countdown-banner').style.borderColor = '#f5c6cb';
+            }
+        }
+
+        setInterval(updateCountdown, 1000);
+        updateCountdown();
+
         // Lógica del Video Tutorial
         const video = document.getElementById('tutorialVideo');
         const videoContainer = document.getElementById('videoContainer');
