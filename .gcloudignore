@@ -1,0 +1,9 @@
+.gcloudignore
+.git
+.gitignore
+node_modules/
+public/uploads/*
+!public/uploads/.gitkeep
+docker-compose.yml
+Dockerfile
+README.md

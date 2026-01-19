@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  bingo:
+    build: .
+    container_name: bingo_socketio
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./public/uploads:/app/public/uploads
+    restart: always

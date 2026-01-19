@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','GTM-K8X2VVFK');</script>
+    <!-- End Google Tag Manager -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bingo Socket.IO</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-K8X2VVFK"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+    <div class="container">
+        <div class="header-sticky">
+            <h1>Bingo en Vivo</h1>
+
+            <div class="game-info">
+                <div class="info-card">
+                    <span class="label">Participantes</span>
+                    <span id="statCards" class="value">--</span>
+                </div>
+                <div class="info-card prize">
+                    <span class="label">Pozo Acumulado</span>
+                    <span id="statPrize" class="value">S/ 0.00</span>
+                </div>
+            </div>
+
+            <div class="current-number-display">
+                <h2>Número Actual:</h2>
+                <span id="currentNumber">--</span>
+            </div>
+        </div>
+
+        <div class="audio-controls">
+            <button id="enableAudioBtn" class="audio-btn">🔇 Activar Sonido</button>
+            <p id="audioNotice" class="audio-notice">Pulsa para escuchar los números</p>
+        </div>
+        
+        <div class="bingo-card-section">
+            <h2 id="cardTitle">Tu Cartilla</h2>
+            <div id="tabsContainer" class="tabs-container"></div>
+            <div id="bingoCardContainer" class="bingo-card"></div>
+        </div>
+
+        <div class="called-numbers">
+            <h3>Números Sacados:</h3>
+            <ul id="calledNumbersList"></ul>
+        </div>
+        <p id="gameOverMessage" class="hidden">El juego ha terminado. ¡Todos los números han sido llamados!</p>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // Obtener el token de la URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('t');
+
+        // Enviar el token en la conexión para identificar al jugador
+        const socket = io({
+            query: { token }
+        });
+
+        const currentNumberSpan = document.getElementById('currentNumber');
+        const calledNumbersList = document.getElementById('calledNumbersList');
+        const gameOverMessage = document.getElementById('gameOverMessage');
+        const bingoCardContainer = document.getElementById('bingoCardContainer');
+        const tabsContainer = document.getElementById('tabsContainer');
+        const statCards = document.getElementById('statCards');
+        const statPrize = document.getElementById('statPrize');
+        const cardTitle = document.getElementById('cardTitle');
+        const enableAudioBtn = document.getElementById('enableAudioBtn');
+        const audioNotice = document.getElementById('audioNotice');
+
+        let userCards = [];
+        let gameEnded = false;
+        let audioEnabled = false;
+        let currentCardIndex = 0;
+
+        enableAudioBtn.addEventListener('click', () => {
+            audioEnabled = !audioEnabled;
+            if (audioEnabled) {
+                enableAudioBtn.textContent = '🔊 Sonido Activado';
+                enableAudioBtn.classList.add('enabled');
+                audioNotice.style.display = 'none';
+                const utterance = new SpeechSynthesisUtterance('Sonido activado');
+                utterance.lang = 'es-ES';
+                window.speechSynthesis.speak(utterance);
+            } else {
+                enableAudioBtn.textContent = '🔇 Sonido Silenciado';
+                enableAudioBtn.classList.remove('enabled');
+                audioNotice.style.display = 'block';
+            }
+        });
+
+        function getBingoLetter(num) {
+            if (num <= 15) return 'B';
+            if (num <= 30) return 'I';
+            if (num <= 45) return 'N';
+            if (num <= 60) return 'G';
+            return 'O';
+        }
+
+        function speak(number) {
+            if (audioEnabled && 'speechSynthesis' in window) {
+                const letter = getBingoLetter(number);
+                const text = `${letter}, ${number}`;
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'es-ES';
+                utterance.rate = 0.9;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        socket.on('bingo:your_cards', (cards) => {
+            userCards = cards;
+            renderAllCards(userCards);
+            if (cards.length > 1) {
+                cardTitle.textContent = `Tienes ${cards.length} Cartillas`;
+            }
+        });
+
+        socket.on('bingo:initial_numbers', (numbers) => {
+            numbers.forEach(number => {
+                addNumberToDisplay(number);
+                markNumberOnAllCards(number);
+            });
+            if (numbers.length > 0) {
+                currentNumberSpan.textContent = numbers[numbers.length - 1];
+            }
+        });
+
+        socket.on('bingo:new_number', (number) => {
+            if (gameEnded) return;
+            currentNumberSpan.textContent = number;
+            addNumberToDisplay(number);
+            markNumberOnAllCards(number);
+            speak(number);
+            gameOverMessage.classList.add('hidden');
+        });
+
+        socket.on('bingo:stats', (data) => {
+            statCards.textContent = data.totalCards;
+            statPrize.textContent = `S/ ${data.totalPrize}`;
+        });
+
+        socket.on('bingo:game_over', (message) => {
+            gameEnded = true;
+            currentNumberSpan.textContent = 'FIN';
+            gameOverMessage.textContent = message;
+            gameOverMessage.classList.remove('hidden');
+        });
+
+        socket.on('bingo:winner', (data) => {
+            gameEnded = true;
+            const winnerId = typeof data === 'object' ? data.id : data;
+            const winnerPhone = typeof data === 'object' ? data.phone : data;
+
+            const isMe = socket.id === winnerId;
+            currentNumberSpan.textContent = isMe ? '¡GANASTE!' : '¡BINGO!';
+            
+            if (isMe) {
+                gameOverMessage.textContent = '¡Felicidades! Has completado una línea y ganado el BINGO.';
+                gameOverMessage.style.color = '#28a745';
+            } else {
+                gameOverMessage.textContent = `El jugador con celular ${winnerPhone} ha ganado el BINGO.`;
+                gameOverMessage.style.color = '#dc3545';
+            }
+            
+            gameOverMessage.classList.remove('hidden');
+        });
+
+        socket.on('bingo:reset', () => {
+            localStorage.removeItem('bingo_phone');
+            alert('El juego ha sido reiniciado por el administrador. Serás redirigido para una nueva partida.');
+            window.location.href = '/';
+        });
+
+        function addNumberToDisplay(number) {
+            const listItem = document.createElement('li');
+            listItem.textContent = number;
+            calledNumbersList.prepend(listItem);
+        }
+
+        function renderAllCards(cards) {
+            bingoCardContainer.innerHTML = '';
+            tabsContainer.innerHTML = '';
+
+            cards.forEach((card, index) => {
+                // Crear Botón de Tab
+                if (cards.length > 1) {
+                    const btn = document.createElement('button');
+                    btn.className = 'tab-button' + (index === 0 ? ' active' : '');
+                    btn.textContent = `Cartilla ${index + 1}`;
+                    btn.onclick = () => switchCard(index);
+                    tabsContainer.appendChild(btn);
+                }
+
+                // Crear Tabla de Cartilla
+                const table = document.createElement('table');
+                table.id = `card-table-${index}`;
+                if (index !== 0) table.classList.add('hidden-card');
+                
+                const headerRow = table.insertRow();
+                ['B', 'I', 'N', 'G', 'O'].forEach(letter => {
+                    const th = document.createElement('th');
+                    th.textContent = letter;
+                    headerRow.appendChild(th);
+                });
+
+                card.forEach(row => {
+                    const tr = table.insertRow();
+                    row.forEach(cellValue => {
+                        const td = tr.insertCell();
+                        td.textContent = cellValue;
+                        td.dataset.number = cellValue;
+                        if (cellValue === 'FREE') {
+                            td.classList.add('free-space', 'marked');
+                        }
+                    });
+                });
+                bingoCardContainer.appendChild(table);
+            });
+        }
+
+        function switchCard(index) {
+            currentCardIndex = index;
+            const tables = bingoCardContainer.querySelectorAll('table');
+            const buttons = tabsContainer.querySelectorAll('.tab-button');
+            
+            tables.forEach((t, i) => {
+                t.classList.toggle('hidden-card', i !== index);
+            });
+            buttons.forEach((b, i) => {
+                b.classList.toggle('active', i === index);
+            });
+        }
+
+        function markNumberOnAllCards(number) {
+            const cells = bingoCardContainer.querySelectorAll(`[data-number="${number}"]`);
+            cells.forEach(cell => {
+                cell.classList.add('marked');
+            });
+        }
+    </script>
+</body>
+</html>
