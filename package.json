@@ -4,7 +4,8 @@
   "description": "Un juego de bingo simple con Socket.IO",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "dev": "nodemon index.js"
   },
   "keywords": [],
   "author": "",
@@ -13,6 +14,7 @@
     "dotenv": "^17.2.3",
     "express": "^4.18.2",
     "multer": "^1.4.5-lts.1",
+    "nodemon": "^3.0.3",
     "socket.io": "^4.7.4",
     "sqlite3": "^5.1.7"
   }

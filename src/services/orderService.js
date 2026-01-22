@@ -32,7 +32,7 @@ class OrderService {
     return null;
   }
 
-  addPendingOrder(phone, operationCode, screenshot) {
+  addPendingOrder(phone, operationCode, screenshot, isTrial = false) {
     // Si ya existe una orden activa para este teléfono, no creamos una nueva
     const existing = this.findOrderByPhone(phone);
     if (existing) return existing;
@@ -44,6 +44,7 @@ class OrderService {
       phone,
       operationCode: operationCode || 'N/A',
       screenshot,
+      isTrial,
       status: 'pending',
       timestamp: new Date()
     };
@@ -55,17 +56,21 @@ class OrderService {
    * Mueve una orden de pendiente a aprobada y genera uno o varios tokens de acceso.
    * @param {number} id - ID de la orden.
    * @param {number} quantity - Cantidad de cartillas a generar.
+   * @param {boolean} isTrialOverride - Forzar estado de prueba al aprobar.
    * @returns {Array<Object>|null} Lista de aprobaciones o null si no se encuentra.
    */
-  approveOrder(id, quantity = 1) {
+  approveOrder(id, quantity = 1, isTrialOverride = null) {
     const index = this.pendingOrders.findIndex(o => o.id === id);
     if (index !== -1) {
       const order = this.pendingOrders.splice(index, 1)[0];
       const results = [];
       
+      // Si se pasa isTrialOverride, usamos ese valor. Si no, usamos el que traía la orden.
+      const isTrial = isTrialOverride !== null ? isTrialOverride : order.isTrial;
+
       for (let i = 0; i < quantity; i++) {
         const token = Math.random().toString(36).substring(2, 15);
-        const approvalData = { ...order, token, status: 'approved' };
+        const approvalData = { ...order, token, status: 'approved', isTrial };
         this.approvedOrders.set(token, approvalData);
         results.push(approvalData);
       }

@@ -8,7 +8,7 @@ class BingoService {
     this.bingoNumbers = Array.from({ length: 75 }, (_, i) => i + 1);
     this.calledNumbers = [];
     this.availableNumbers = [...this.bingoNumbers];
-    this.userCards = new Map(); // socketId -> { cards: [{card, marked}], phone }
+    this.userCards = new Map(); // socketId -> { cards: [{card, marked}], phone, isTrial }
     this.gameActive = true;
     this.winner = null;
   }
@@ -41,9 +41,10 @@ class BingoService {
    * Registra un nuevo jugador o añade una cartilla a uno existente.
    * @param {string} socketId - Identificador único de la conexión.
    * @param {string|null} phone - Número de teléfono del jugador (opcional).
+   * @param {boolean} isTrial - Indica si es un usuario de prueba.
    * @returns {Object} La lista completa de cartillas del usuario.
    */
-  addUser(socketId, phone = null) {
+  addUser(socketId, phone = null, isTrial = false) {
     const newCard = this.generateBingoCard();
     const initialMarked = Array.from({ length: 5 }, () => Array(5).fill(false));
     initialMarked[2][2] = true;
@@ -54,14 +55,15 @@ class BingoService {
     if (!userData) {
       userData = { 
         cards: [cardData], 
-        phone: phone || `Anon-${socketId.substring(0, 4)}` 
+        phone: phone || `Anon-${socketId.substring(0, 4)}`,
+        isTrial
       };
       this.userCards.set(socketId, userData);
     } else {
       userData.cards.push(cardData);
     }
     
-    console.log(`[BINGO] Usuario ${socketId} (${userData.phone}) ahora tiene ${userData.cards.length} cartillas.`);
+    console.log(`[BINGO] Usuario ${socketId} (${userData.phone}) [Trial: ${isTrial}] ahora tiene ${userData.cards.length} cartillas.`);
     return userData;
   }
 
@@ -80,6 +82,8 @@ class BingoService {
     const newNumber = this.availableNumbers.splice(randomIndex, 1)[0];
     this.calledNumbers.push(newNumber);
 
+    let trialWinner = null;
+
     // Actualizar marcas
     this.userCards.forEach((userData, userId) => {
       userData.cards.forEach((cardSet) => {
@@ -90,13 +94,17 @@ class BingoService {
           }
         }
         if (this.checkBingo(cardSet, userId)) {
-          this.gameActive = false;
-          this.winner = { id: userId, phone: userData.phone };
+          if (!userData.isTrial) {
+            this.gameActive = false;
+            this.winner = { id: userId, phone: userData.phone };
+          } else {
+            trialWinner = { id: userId, phone: userData.phone, isTrial: true };
+          }
         }
       });
     });
 
-    return { number: newNumber, winner: this.winner };
+    return { number: newNumber, winner: this.winner, trialWinner };
   }
 
   /**
@@ -171,19 +179,19 @@ class BingoService {
 
   /**
    * Retorna la lista de jugadores actuales.
-   * @returns {Array<Object>} Lista de { id, phone }
+   * @returns {Array<Object>} Lista de { id, phone, isTrial }
    */
   getPlayers() {
     const players = [];
     this.userCards.forEach((data, userId) => {
-      players.push({ id: userId, phone: data.phone });
+      players.push({ id: userId, phone: data.phone, isTrial: data.isTrial });
     });
     return players;
   }
 
   /**
    * Identifica qué jugadores están a 1 o 2 números de ganar.
-   * @returns {Array<Object>} Lista de { phone, missing }
+   * @returns {Array<Object>} Lista de { phone, missing, isTrial }
    */
   getApproachingWinners() {
     const approaching = [];
@@ -213,7 +221,7 @@ class BingoService {
       });
 
       if (minMissingForUser === 1 || minMissingForUser === 2) {
-        approaching.push({ phone: userData.phone, missing: minMissingForUser });
+        approaching.push({ phone: userData.phone, missing: minMissingForUser, isTrial: userData.isTrial });
       }
     });
     

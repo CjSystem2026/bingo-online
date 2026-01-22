@@ -16,5 +16,5 @@ COPY . .
 # Expone el puerto en el que se ejecutará la aplicación
 EXPOSE 3000
 
-# Comando para iniciar la aplicación
-CMD ["npm", "start"]
+# Comando para iniciar la aplicación en modo desarrollo con nodemon
+CMD ["npm", "run", "dev"]

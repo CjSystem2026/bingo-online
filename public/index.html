@@ -192,6 +192,16 @@
             gameOverMessage.classList.remove('hidden');
         });
 
+        socket.on('bingo:trial_winner', (data) => {
+            const isMe = socket.id === data.id;
+            if (isMe) {
+                currentNumberSpan.textContent = '¡BINGO!';
+                gameOverMessage.textContent = '¡Felicidades! Has completado tu cartilla (MODO PRUEBA). ¡Imagina ganar el pozo real!';
+                gameOverMessage.style.color = '#6c5ce7';
+                gameOverMessage.classList.remove('hidden');
+            }
+        });
+
         socket.on('bingo:reset', () => {
             localStorage.removeItem('bingo_phone');
             localStorage.removeItem('bingo_request_token');
@@ -229,7 +239,8 @@
             list.forEach(p => {
                 const badge = document.createElement('span');
                 badge.className = `approaching-badge missing-${p.missing}`;
-                badge.innerText = `📱 ${p.phone} (¡le falta ${p.missing}!)`;
+                const trialTag = p.isTrial ? ' (Prueba)' : '';
+                badge.innerText = `📱 ${p.phone}${trialTag} (¡le falta ${p.missing}!)`;
                 container.appendChild(badge);
             });
         }

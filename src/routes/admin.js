@@ -19,26 +19,40 @@ router.get('/', (req, res) => {
     <html>
     <head>
       <title>Panel Admin Bingo</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <style>
-        body{font-family:sans-serif;padding:20px;background:#f4f7f6;color:#333}
-        .container{max-width:1000px;margin:0 auto}
-        h1, h2{color:#2c3e50}
-        table{width:100%;border-collapse:collapse;background:white;margin-bottom:30px;box-shadow:0 2px 5px rgba(0,0,0,0.1)}
-        th,td{border:1px solid #ddd;padding:12px;text-align:left}
-        th{background-color:#4a3aff;color:white}
+        body{font-family:sans-serif;padding:10px;background:#f4f7f6;color:#333;margin:0}
+        .container{max-width:1000px;margin:0 auto;width:100%;box-sizing:border-box}
+        h1{color:#2c3e50;font-size:1.5rem;text-align:center;margin-top:10px}
+        h2{color:#2c3e50;font-size:1.2rem}
+        .table-container{width:100%;overflow-x:auto;background:white;margin-bottom:30px;box-shadow:0 2px 5px rgba(0,0,0,0.1);border-radius:8px}
+        table{width:100%;border-collapse:collapse;min-width:600px}
+        th,td{border:1px solid #eee;padding:12px;text-align:left}
+        th{background-color:#4a3aff;color:white;font-size:0.9rem}
         tr:nth-child(even){background-color:#f9f9f9}
-        .btn{padding:8px 16px;cursor:pointer;background:#4a3aff;color:white;border:none;border-radius:4px;font-weight:600;text-decoration:none;display:inline-block}
+        .btn{padding:10px 16px;cursor:pointer;background:#4a3aff;color:white;border:none;border-radius:6px;font-weight:600;text-decoration:none;display:inline-block;text-align:center;font-size:0.9rem;transition:opacity 0.2s}
+        .btn:active{opacity:0.8}
         .btn-ws{background:#25D366}
         .btn-approved{background:#27ae60}
-        .btn-reset{background:#e74c3c}
-        .btn-call{background:#f39c12;font-size:1.2rem;padding:15px 30px}
+        .btn-reset{background:#e74c3c;width:100%;max-width:300px}
+        .btn-call{background:#f39c12;font-size:1.1rem;padding:15px 25px;width:100%;max-width:400px;margin:10px 0}
+        .btn-group{display:flex;gap:5px;flex-wrap:wrap}
         .empty-row{text-align:center;color:#666;font-style:italic}
-        .game-controls{background:white;padding:20px;border-radius:10px;box-shadow:0 2px 5px rgba(0,0,0,0.1);margin-bottom:30px;text-align:center}
+        .game-controls{background:white;padding:15px;border-radius:10px;box-shadow:0 2px 5px rgba(0,0,0,0.1);margin-bottom:30px;text-align:center}
         .audio-controls { margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; }
-        .audio-btn { background-color: #6c757d; color: white; padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; }
+        .audio-btn { background-color: #6c757d; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
         .audio-btn.enabled { background-color: #17a2b8; }
         .audio-notice { font-size: 0.8rem; color: #d9534f; margin-top: 5px; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
+        
+        @media (max-width: 600px) {
+          body{padding:5px}
+          h1{font-size:1.3rem}
+          .game-controls{padding:10px}
+          .btn-group{flex-direction:column}
+          .btn-group .btn{width:100%}
+          th,td{padding:8px;font-size:0.85rem}
+        }
       </style>
       <script src="/socket.io/socket.io.js"></script>
     </head>
@@ -86,31 +100,49 @@ router.get('/', (req, res) => {
         </div>
         
         <h2>⏳ Pedidos Pendientes</h2>
-        <table id="pendingTable">
-          <thead>
-            <tr><th>Fecha</th><th>Celular</th><th>Acción</th></tr>
-          </thead>
-          <tbody>
+        <div class="table-container">
+          <table id="pendingTable">
+            <thead>
+              <tr><th>Fecha</th><th>Celular</th><th>Acción</th></tr>
+            </thead>
+            <tbody>
   `;
 
   if (pendingOrders.length === 0) {
     html += `<tr class="empty-row"><td colspan="4">No hay pedidos pendientes</td></tr>`;
   } else {
-    pendingOrders.forEach(order => {
-      const screenshotBtn = order.screenshot 
-        ? `<a href="${order.screenshot}" target="_blank" class="btn" style="background:#6c5ce7;margin-right:5px">👁️ Ver Captura</a>` 
-        : '<span style="color:#999;font-size:0.8rem;margin-right:5px">(Sin captura)</span>';
+    // Ordenar: Primero los reales (isTrial false), luego los trial
+    const sortedOrders = [...pendingOrders].sort((a, b) => (a.isTrial === b.isTrial) ? 0 : a.isTrial ? 1 : -1);
+
+    sortedOrders.forEach(order => {
+      let screenshotBtn = '';
+      let rowStyle = '';
+      let actionButtons = '';
+
+      if (order.isTrial) {
+        screenshotBtn = '<span style="color:#6c5ce7;font-weight:bold;font-size:1.1rem">🎁 PRUEBA GRATIS</span>';
+        rowStyle = 'background-color: #f0f0ff; border-left: 5px solid #6c5ce7;';
+        actionButtons = `<button class="btn" style="background:#6c5ce7" onclick="approve(${order.id}, 1, true)">✅ APROBAR PRUEBA</button>`;
+      } else {
+        screenshotBtn = order.screenshot 
+          ? `<a href="${order.screenshot}" target="_blank" class="btn" style="background:#6c5ce7;margin-right:5px">👁️ Ver Captura</a>` 
+          : '<span style="color:#999;font-size:0.8rem;margin-right:5px">(Sin captura)</span>';
+        rowStyle = 'border-left: 5px solid #27ae60;';
+        actionButtons = `
+          <button class="btn" onclick="approve(${order.id}, 1)">✅ 1 Cart.</button>
+          <button class="btn" style="background:#27ae60" onclick="approve(${order.id}, 2)">✅ 2 Cart.</button>
+          <button class="btn" style="background:#e67e22" onclick="approve(${order.id}, 3)">✅ 3 Cart.</button>
+        `;
+      }
 
       html += `
-        <tr id="row-pending-${order.id}">
+        <tr id="row-pending-${order.id}" style="${rowStyle}">
           <td>${order.timestamp.toLocaleTimeString()}</td>
           <td>${escapeHTML(order.phone)}</td>
           <td>
-            ${screenshotBtn}
-            <div style="display:flex;gap:5px">
-              <button class="btn" onclick="approve(${order.id}, 1)">✅ 1 Cart.</button>
-              <button class="btn" style="background:#27ae60" onclick="approve(${order.id}, 2)">✅✅ 2 Cart. (S/10)</button>
-              <button class="btn" style="background:#e67e22" onclick="approve(${order.id}, 3)">✅✅✅ 3 Cart. (S/15)</button>
+            <div style="margin-bottom:8px">${screenshotBtn}</div>
+            <div class="btn-group">
+              ${actionButtons}
             </div>
           </td>
         </tr>
@@ -119,15 +151,17 @@ router.get('/', (req, res) => {
   }
 
   html += `
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        </div>
 
         <h2>✅ Pedidos Aprobados (Historial)</h2>
-        <table id="approvedTable">
-          <thead>
-            <tr><th>Celular</th><th>Link de Cartilla</th><th>Acción</th></tr>
-          </thead>
-          <tbody>
+        <div class="table-container">
+          <table id="approvedTable">
+            <thead>
+              <tr><th>Celular</th><th>Link de Cartilla</th><th>Acción</th></tr>
+            </thead>
+            <tbody>
   `;
 
   if (approvedOrders.size === 0) {
@@ -137,15 +171,18 @@ router.get('/', (req, res) => {
       const playUrl = `${baseUrl}/jugar?t=${token}`;
       const wsText = `¡Hola! Tu pago ha sido verificado. Aquí tienes tu link para jugar al Bingo:\n\n${playUrl}`;
       const wsUrl = `https://api.whatsapp.com/send?phone=51${data.phone}&text=${encodeURIComponent(wsText)}`;
+      const isTrialLabel = data.isTrial ? ' <span style="color:#6c5ce7;font-size:0.7rem">(Prueba)</span>' : '';
 
       html += `
         <tr id="row-approved-${data.id}">
-          <td>${escapeHTML(data.phone)}</td>
-          <td><code style="background:#eee;padding:4px">${playUrl}</code></td>
+          <td>${escapeHTML(data.phone)}${isTrialLabel}</td>
+          <td><code style="background:#eee;padding:4px;word-break:break-all">${playUrl}</code></td>
           <td>
-            <a href="${wsUrl}" target="whatsapp_web" class="btn btn-ws">💬 WhatsApp</a>
-            <button onclick="copyToClipboard('${playUrl}')" class="btn" style="background:#636e72">📋 Copiar</button>
-            <a href="${playUrl}" target="_blank" class="btn">👁️ Ver</a>
+            <div class="btn-group">
+              <a href="${wsUrl}" target="whatsapp_web" class="btn btn-ws">💬 WhatsApp</a>
+              <button onclick="copyToClipboard('${playUrl}')" class="btn" style="background:#636e72">📋 Copiar</button>
+              <a href="${playUrl}" target="_blank" class="btn">👁️ Ver</a>
+            </div>
           </td>
         </tr>
       `;
@@ -153,8 +190,9 @@ router.get('/', (req, res) => {
   }
 
   html += `
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <script>
@@ -205,12 +243,17 @@ router.get('/', (req, res) => {
           }
         }
 
-        function approve(id, quantity = 1) {
-          if(!confirm('¿Has verificado este pago en tu Yape/Plin por ' + (quantity * 5) + ' soles?')) return;
+        function approve(id, quantity = 1, isTrial = false) {
+          const msg = isTrial 
+            ? '¿Deseas habilitar la PRUEBA GRATIS para este usuario?' 
+            : '¿Has verificado este pago en tu Yape/Plin por ' + (quantity * 5) + ' soles?';
+          
+          if(!confirm(msg)) return;
+
           fetch('/api/approve-order', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({id, quantity})
+            body: JSON.stringify({id, quantity, isTrial})
           });
         }
 
@@ -318,25 +361,45 @@ router.get('/', (req, res) => {
           const emptyRow = tbody.querySelector('.empty-row');
           if (emptyRow) emptyRow.remove();
 
-          const screenshotBtn = order.screenshot 
-            ? '<a href="' + order.screenshot + '" target="_blank" class="btn" style="background:#6c5ce7;margin-right:5px">👁️ Ver Captura</a>' 
-            : '<span style="color:#999;font-size:0.8rem;margin-right:5px">(Sin captura)</span>';
+          let screenshotBtn = '';
+          let rowStyle = '';
+          let actionButtons = '';
+
+          if (order.isTrial) {
+            screenshotBtn = '<span style="color:#6c5ce7;font-weight:bold;font-size:1.1rem">🎁 PRUEBA GRATIS</span>';
+            rowStyle = 'background-color: #f0f0ff; border-left: 5px solid #6c5ce7;';
+            actionButtons = '<button class="btn" style="background:#6c5ce7" onclick="approve(' + order.id + ', 1, true)">✅ APROBAR PRUEBA</button>';
+          } else {
+            screenshotBtn = order.screenshot 
+              ? '<a href="' + order.screenshot + '" target="_blank" class="btn" style="background:#6c5ce7;margin-right:5px">👁️ Ver Captura</a>' 
+              : '<span style="color:#999;font-size:0.8rem;margin-right:5px">(Sin captura)</span>';
+            rowStyle = 'border-left: 5px solid #27ae60;';
+            actionButtons = \`
+              <button class="btn" onclick="approve(\${order.id}, 1)">✅ 1 Cart.</button>
+              <button class="btn" style="background:#27ae60" onclick="approve(\${order.id}, 2)">✅ 2 Cart.</button>
+              <button class="btn" style="background:#e67e22" onclick="approve(\${order.id}, 3)">✅ 3 Cart.</button>
+            \`;
+          }
 
           const row = document.createElement('tr');
           row.id = 'row-pending-' + order.id;
+          row.style = rowStyle;
           row.innerHTML = \`
             <td>\${order.timeStr}</td>
             <td>\${order.phone}</td>
             <td>
-              \${screenshotBtn}
-              <div style="display:flex;gap:5px">
-                <button class="btn" onclick="approve(\${order.id}, 1)">✅ 1 Cart.</button>
-                <button class="btn" style="background:#27ae60" onclick="approve(\${order.id}, 2)">✅✅ 2 Cart. (S/10)</button>
-                <button class="btn" style="background:#e67e22" onclick="approve(\${order.id}, 3)">✅✅✅ 3 Cart. (S/15)</button>
+              <div style="margin-bottom:8px">\${screenshotBtn}</div>
+              <div class="btn-group">
+                \${actionButtons}
               </div>
             </td>
           \`;
-          tbody.prepend(row);
+          
+          if (!order.isTrial) {
+            tbody.prepend(row);
+          } else {
+            tbody.appendChild(row);
+          }
         });
 
         socket.on('admin:order_approved', (data) => {
@@ -356,16 +419,19 @@ router.get('/', (req, res) => {
           const playUrl = baseUrl + '/jugar?t=' + data.token;
           const wsText = "¡Hola! Tu pago ha sido verificado. Aquí tienes tu link para jugar al Bingo:\\n\\n" + playUrl;
           const wsUrl = "https://api.whatsapp.com/send?phone=51" + data.phone + "&text=" + encodeURIComponent(wsText);
+          const isTrialLabel = data.isTrial ? ' <span style="color:#6c5ce7;font-size:0.7rem">(Prueba)</span>' : '';
 
           const row = document.createElement('tr');
           row.id = 'row-approved-' + data.id;
           row.innerHTML = \`
-            <td>\${data.phone}</td>
-            <td><code style="background:#eee;padding:4px">\${playUrl}</code></td>
+            <td>\${data.phone}\${isTrialLabel}</td>
+            <td><code style="background:#eee;padding:4px;word-break:break-all">\${playUrl}</code></td>
             <td>
-              <a href="\${wsUrl}" target="whatsapp_web" class="btn btn-ws">💬 WhatsApp</a>
-              <button onclick="copyToClipboard('\${playUrl}')" class="btn" style="background:#636e72">📋 Copiar</button>
-              <a href="\${playUrl}" target="_blank" class="btn">👁️ Ver</a>
+              <div class="btn-group">
+                <a href="\${wsUrl}" target="whatsapp_web" class="btn btn-ws">💬 WhatsApp</a>
+                <button onclick="copyToClipboard('\${playUrl}')" class="btn" style="background:#636e72">📋 Copiar</button>
+                <a href="\${playUrl}" target="_blank" class="btn">👁️ Ver</a>
+              </div>
             </td>
           \`;
           approvedTbody.prepend(row);

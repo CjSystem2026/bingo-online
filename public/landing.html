@@ -1,29 +1,79 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <!-- Google Tag Manager -->
-    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-    })(window,document,'script','dataLayer','GTM-K8X2VVFK');</script>
+    <script>(function (w, d, s, l, i) {
+            w[l] = w[l] || []; w[l].push({
+                'gtm.start':
+                    new Date().getTime(), event: 'gtm.js'
+            }); var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+                    'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-K8X2VVFK');</script>
     <!-- End Google Tag Manager -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bingo Online - Gana el 80% del Pozo</title>
     <link rel="stylesheet" href="landing.css">
 </head>
+
 <body>
     <!-- Google Tag Manager (noscript) -->
-    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-K8X2VVFK"
-    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-K8X2VVFK" height="0" width="0"
+            style="display:none;visibility:hidden"></iframe></noscript>
     <!-- End Google Tag Manager (noscript) -->
+
+    <div id="topTrialBanner" class="top-trial-banner">
+        🎁 ¿Eres nuevo? ¡Prueba gratis aquí! <span class="cta-emoji">👇</span>
+    </div>
+
     <header>
         <h1>🎉 Juega Bingo Online y Gana Hoy Mismo</h1>
-        <div id="countdown-banner" style="background: #fff3cd; color: #856404; padding: 15px; border-radius: 10px; display: inline-block; margin: 10px 0; font-weight: 700; border: 2px solid #ffeeba;">
+
+        <div class="quick-steps">
+            <div class="q-step">
+                <span class="q-num">1</span>
+                <p>Mira el sorteo en vivo</p>
+            </div>
+            <div class="q-step">
+                <span class="q-num">2</span>
+                <p>Paga S/ 5 al 969 870 112</p>
+            </div>
+            <div class="q-step">
+                <span class="q-num">3</span>
+                <p>Envía tu captura y recibe tu link</p>
+            </div>
+        </div>
+
+        <div class="shorts-container">
+            <iframe src="https://www.youtube.com/embed/BJETuktqSzo?mute=1" title="Bingo Online" frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowfullscreen></iframe>
+        </div>
+
+        <div id="countdown-banner">
+            <span class="live-dot"></span>
             🎮 PRÓXIMO JUEGO: <span id="timer">--:--:--</span>
         </div>
-        <div class="price-badge" style="display: block; width: fit-content; margin: 20px auto;">¡Cartilla a solo S/ 5!</div>
+
+        
+        <a href="#pago-seguro" class="price-badge">¡Cartilla a solo S/ 5! 👇</a>
+
+        <section id="ganadores-ticker">
+            <div class="ticker-header">
+                <span>🏆</span>
+                <h2>Últimos Ganadores:</h2>
+            </div>
+            <div class="ticker-container">
+                <ul class="ganadores-list" id="winnersList">
+                    <li>Rosa S. (Lima) <span>ganó S/ 90</span></li>
+                    <li>Marta S. (Arequipa) <span>ganó S/ 150</span></li>
+                    <li>Maria M (Lima) <span>ganó S/ 50</span></li>
+                </ul>
+            </div>
+        </section>
+
         <div class="ganancia-header">
             <h2>¡GRANDES PREMIOS PARA EL GANADOR!</h2>
             <div class="ejemplos">
@@ -34,19 +84,7 @@
     </header>
 
     <main>
-        <section id="ganadores-ticker">
-            <div class="ticker-header">
-                <span>🏆</span>
-                <h2>Últimos Ganadores:</h2>
-            </div>
-            <div class="ticker-container">
-                <ul class="ganadores-list" id="winnersList">
-                    <li>Juan R. (Lima) <span>ganó S/ 120</span></li>
-                    <li>Marta S. (Arequipa) <span>ganó S/ 150</span></li>
-                    <li>Maria M (Lima) <span>ganó S/ 50</span></li>
-                </ul>
-            </div>
-        </section>
+        
 
         <section id="tutorial">
             <h2>🚀 ¿Cómo obtener tu cartilla? (Tutorial)</h2>
@@ -59,7 +97,8 @@
                     <span>🔊 Tocar para escuchar</span>
                 </div>
             </div>
-            <p style="margin-top: 15px; font-size: 0.9rem; color: #666; font-weight: 600;">💡 Mira el video para saber cómo registrarte paso a paso.</p>
+            <p style="margin-top: 15px; font-size: 0.9rem; color: #666; font-weight: 600;">💡 Mira el video para saber
+                cómo registrarte paso a paso.</p>
         </section>
 
         <section id="pago-seguro">
@@ -68,29 +107,49 @@
                 <span class="shield-icon">🛡️</span>
                 <p><strong>PAGO 100% SEGURO</strong></p>
                 <p>Garantía de entrega inmediata de tu cartilla y premios.</p>
-                
+
                 <p style="margin-top: 20px;">Paga a este número (Yape/Plin):</p>
                 <div class="payment-number">969 870 112</div>
+
+                <p id="paymentStepTitle">Luego, ingresa tu número y adjunta tu comprobante:</p>
                 
-                <p>Luego, ingresa tu número y adjunta tu comprobante:</p>
                 <div id="paymentForm" style="margin-top: 15px; display: flex; flex-direction: column; align-items: center; gap: 10px;">
-                    <input type="text" id="userPhone" placeholder="Tu número de celular (9 dígitos)" maxlength="9" inputmode="numeric" style="padding: 15px; border-radius: 10px; border: 1px solid #ccc; width: 100%; max-width: 350px; font-size: 1.1rem;">
                     
-                    <div style="width: 100%; max-width: 350px; text-align: left;">
-                        <label for="screenshot" style="font-size: 0.9rem; color: #4a3aff; font-weight: 600; margin-left: 5px;">📸 Adjuntar captura de pago (Obligatorio):</label>
-                        <input type="file" id="screenshot" accept="image/*" style="padding: 10px; border-radius: 10px; border: 1px dashed #4a3aff; width: 100%; font-size: 0.9rem; margin-top: 5px; background: #fff;">
+                    <button id="btnTrial" class="cta-button trial-button">🎁 OBTENER PRUEBA GRATIS</button>
+                    
+                    <div id="trialBadge" class="trial-badge" style="display: none;">MODO PRUEBA ACTIVADO</div>
+
+                    <input type="text" id="userPhone" placeholder="Tu número de celular (9 dígitos)" maxlength="9"
+                        inputmode="numeric"
+                        style="padding: 15px; border-radius: 10px; border: 1px solid #ccc; width: 100%; max-width: 350px; font-size: 1.1rem;">
+
+                    <div id="screenshotContainer" style="width: 100%; max-width: 350px; text-align: left;">
+                        <label for="screenshot"
+                            style="font-size: 0.9rem; color: #4a3aff; font-weight: 600; margin-left: 5px;">📸 Adjuntar
+                            captura de pago (Obligatorio):</label>
+                        <input type="file" id="screenshot" accept="image/*"
+                            style="padding: 10px; border-radius: 10px; border: 1px dashed #4a3aff; width: 100%; font-size: 0.9rem; margin-top: 5px; background: #fff;">
                     </div>
 
-                    <button class="cta-button" id="btnValidate">¡OBTÉN TU CARTILLA POR S/ 5!</button>
+                    <button class="cta-button gold-button" id="btnValidate">¡OBTÉN TU CARTILLA POR S/ 5!</button>
+                    
+                    <button id="btnBackToNormal" class="back-button" style="display: none;">Volver al pago normal (S/ 5)</button>
                 </div>
 
-                <div id="statusContainer" style="display: none; margin-top: 15px; flex-direction: column; align-items: center;">
-                    <div id="statusMsg" style="font-weight: 600; padding: 15px; border-radius: 10px; width: 100%; max-width: 350px; margin-bottom: 10px;"></div>
-                    <button id="btnChangeNumber" style="font-size: 0.8rem; background: none; border: none; color: #666; text-decoration: underline; cursor: pointer;">Usar otro número de celular</button>
+                <div id="statusContainer"
+                    style="display: none; margin-top: 15px; flex-direction: column; align-items: center;">
+                    <div id="statusMsg"
+                        style="font-weight: 600; padding: 15px; border-radius: 10px; width: 100%; max-width: 350px; margin-bottom: 10px;">
+                    </div>
+                    <button id="btnChangeNumber"
+                        style="font-size: 0.8rem; background: none; border: none; color: #666; text-decoration: underline; cursor: pointer;">Usar
+                        otro número de celular</button>
                 </div>
 
                 <div style="margin-top: 15px; display: flex; flex-direction: column; align-items: center;">
-                    <a href="https://wa.me/51999888777?text=Hola,%20tengo%20problemas%20con%20mi%20pago" target="_blank" style="font-size: 0.9rem; color: #25D366; text-decoration: none; font-weight: 600; margin-top: 10px;">💬 Hablar por WhatsApp (Soporte)</a>
+                    <a href="https://wa.me/51999888777?text=Hola,%20tengo%20problemas%20con%20mi%20pago" target="_blank"
+                        style="font-size: 0.9rem; color: #25D366; text-decoration: none; font-weight: 600; margin-top: 10px;">💬
+                        Hablar por WhatsApp (Soporte)</a>
                 </div>
             </div>
         </section>
@@ -99,7 +158,8 @@
             <h2>❓ Preguntas Frecuentes</h2>
             <details>
                 <summary>¿Es seguro jugar aquí?</summary>
-                <p>Sí, todos los pagos se realizan mediante plataformas oficiales de Yape y Plin, y el pozo se reparte de forma transparente.</p>
+                <p>Sí, todos los pagos se realizan mediante plataformas oficiales de Yape y Plin, y el pozo se reparte
+                    de forma transparente.</p>
             </details>
             <details>
                 <summary>¿Cómo recibo mi premio?</summary>
@@ -110,7 +170,8 @@
 
     <footer>
         <p>&copy; 2026 Bingo Online - Juega con responsabilidad.</p>
-        <p>¿Tienes alguna duda o inconveniente? Escríbenos a <a href="mailto:soporte@bingopremium.com" style="color: #fab1a0; text-decoration: none;">soporte@bingopremium.com</a></p>
+        <p>¿Tienes alguna duda o inconveniente? Escríbenos a <a href="mailto:soporte@bingopremium.com"
+                style="color: #fab1a0; text-decoration: none;">soporte@bingopremium.com</a></p>
     </footer>
 
     <script>
@@ -118,7 +179,7 @@
         function updateCountdown() {
             const now = new Date();
             const target = new Date();
-            
+
             // Configurar el objetivo: Hoy a las 9:00 PM (21:00)
             target.setHours(21, 0, 0, 0);
 
@@ -138,7 +199,7 @@
             const displayS = s < 10 ? '0' + s : s;
 
             document.getElementById('timer').innerText = `${displayH}:${displayM}:${displayS}`;
-            
+
             // Si falta poco, cambiar color a alerta
             if (h === 0 && m < 30) {
                 document.getElementById('countdown-banner').style.background = '#f8d7da';
@@ -190,6 +251,75 @@
             e.target.value = e.target.value.replace(/\D/g, '');
         });
 
+        // Lógica de Prueba Gratis y Validación
+        const btnTrial = document.getElementById('btnTrial');
+        const topTrialBanner = document.getElementById('topTrialBanner');
+        const trialBadge = document.getElementById('trialBadge');
+        const screenshotContainer = document.getElementById('screenshotContainer');
+        const btnBackToNormal = document.getElementById('btnBackToNormal');
+        const paymentStepTitle = document.getElementById('paymentStepTitle');
+        const userPhoneInput = document.getElementById('userPhone');
+        
+        let isTrialMode = false;
+
+        // Ocultar botón y franja de prueba si ya se usó en este navegador
+        if (localStorage.getItem('bingo_trial_used')) {
+            btnTrial.style.display = 'none';
+            if (topTrialBanner) topTrialBanner.style.display = 'none';
+        }
+
+        if (topTrialBanner) {
+            topTrialBanner.addEventListener('click', () => {
+                document.getElementById('pago-seguro').scrollIntoView({ behavior: 'smooth' });
+                if (!isTrialMode) btnTrial.click();
+            });
+        }
+
+        btnTrial.addEventListener('click', () => {
+            isTrialMode = true;
+            btnTrial.style.display = 'none';
+            if (topTrialBanner) topTrialBanner.style.display = 'none';
+            trialBadge.style.display = 'block';
+            screenshotContainer.style.display = 'none';
+            btnBackToNormal.style.display = 'block';
+            paymentStepTitle.innerText = 'Ingresa tu número para recibir tu cartilla de PRUEBA:';
+            btnValidate.innerText = '¡OBTÉN MI PRUEBA GRATIS!';
+        });
+
+        btnBackToNormal.addEventListener('click', () => {
+            isTrialMode = false;
+            btnTrial.style.display = 'block';
+            if (!localStorage.getItem('bingo_trial_used') && topTrialBanner) {
+                topTrialBanner.style.display = 'block';
+            }
+            trialBadge.style.display = 'none';
+            screenshotContainer.style.display = 'block';
+            btnBackToNormal.style.display = 'none';
+            paymentStepTitle.innerText = 'Luego, ingresa tu número y adjunta tu comprobante:';
+            btnValidate.innerText = '¡OBTÉN TU CARTILLA POR S/ 5!';
+        });
+
+        // Verificar disponibilidad de prueba al ingresar el número
+        userPhoneInput.addEventListener('input', async (e) => {
+            const phone = e.target.value.replace(/\D/g, '');
+            if (phone.length === 9) {
+                try {
+                    const resp = await fetch(`/api/check-trial/${phone}`);
+                    const data = await resp.json();
+                    if (!data.canUseTrial) {
+                        if (isTrialMode) btnBackToNormal.click();
+                        btnTrial.style.display = 'none';
+                        if (topTrialBanner) topTrialBanner.style.display = 'none';
+                    } else if (!localStorage.getItem('bingo_trial_used')) {
+                        if (!isTrialMode) {
+                            btnTrial.style.display = 'block';
+                            if (topTrialBanner) topTrialBanner.style.display = 'block';
+                        }
+                    }
+                } catch (err) { console.error(err); }
+            }
+        });
+
         // Lógica de Validación de Pago
         const btnValidate = document.getElementById('btnValidate');
         const paymentForm = document.getElementById('paymentForm');
@@ -218,7 +348,8 @@
             statusContainer.style.display = 'flex';
             statusMsg.style.background = '#fff3cd';
             statusMsg.style.color = '#856404';
-            statusMsg.innerText = `⏳ Validando pago para el número ${phone}... Por favor, espera unos instantes.`;
+            const msg = isTrialMode ? 'validando tu acceso de prueba' : 'validando pago';
+            statusMsg.innerText = `⏳ Estamos ${msg} para el número ${phone}... Por favor, espera unos instantes.`;
         }
 
         btnValidate.addEventListener('click', async () => {
@@ -235,7 +366,7 @@
                 return;
             }
 
-            if (!screenshotFile) {
+            if (!isTrialMode && !screenshotFile) {
                 alert('Es obligatorio adjuntar la captura de pantalla de tu pago.');
                 return;
             }
@@ -246,7 +377,11 @@
             try {
                 const formData = new FormData();
                 formData.append('phone', phone);
-                formData.append('screenshot', screenshotFile);
+                if (screenshotFile) formData.append('screenshot', screenshotFile);
+                if (isTrialMode) {
+                    formData.append('isTrial', 'true');
+                    localStorage.setItem('bingo_trial_used', 'true');
+                }
 
                 const response = await fetch('/api/validate-payment', {
                     method: 'POST',
@@ -265,12 +400,12 @@
                 } else {
                     alert(data.message || 'Error al validar');
                     btnValidate.disabled = false;
-                    btnValidate.innerText = '¡OBTÉN TU CARTILLA POR S/ 5!';
+                    btnValidate.innerText = isTrialMode ? '¡OBTÉN MI PRUEBA GRATIS!' : '¡OBTÉN TU CARTILLA POR S/ 5!';
                 }
             } catch (err) {
                 alert('Hubo un error de conexión. Intenta nuevamente o por WhatsApp.');
                 btnValidate.disabled = false;
-                btnValidate.innerText = '¡OBTÉN TU CARTILLA POR S/ 5!';
+                btnValidate.innerText = isTrialMode ? '¡OBTÉN MI PRUEBA GRATIS!' : '¡OBTÉN TU CARTILLA POR S/ 5!';
             }
         });
 
@@ -287,7 +422,7 @@
                         statusMsg.style.background = '#d4edda';
                         statusMsg.style.color = '#155724';
                         statusMsg.innerHTML = `¡PAGO APROBADO! 🎉 <br><br> Redirigiendo a tu cartilla...`;
-                        
+
                         setTimeout(() => {
                             window.location.href = data.url;
                         }, 1500); // 1.5 segundos de delay para que vea el mensaje de éxito
@@ -307,4 +442,5 @@
         }
     </script>
 </body>
+
 </html>

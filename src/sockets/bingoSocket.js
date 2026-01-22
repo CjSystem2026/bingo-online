@@ -3,7 +3,11 @@ const orderService = require('../services/orderService');
 const { clearAllHashes } = require('../utils/hashStore');
 
 function emitBingoStats(io) {
-  const totalCards = orderService.getApprovedOrders().size;
+  // Solo contar cartillas que NO son de prueba para el pozo
+  const approvedOrders = Array.from(orderService.getApprovedOrders().values());
+  const realCards = approvedOrders.filter(o => !o.isTrial);
+  
+  const totalCards = realCards.length;
   const totalPrize = totalCards * 5 * 0.8;
   io.emit('bingo:stats', {
     totalCards,
@@ -38,6 +42,7 @@ module.exports = (io) => {
       }
 
       userPhone = order.phone;
+      const isTrialUser = order.isTrial === true;
       let totalCardsToAssign = 1;
       
       // Buscar cuántas cartillas aprobadas tiene este número en total
@@ -49,7 +54,7 @@ module.exports = (io) => {
       // Asignar todas las cartillas que le corresponden
       let userData;
       for (let i = 0; i < totalCardsToAssign; i++) {
-        userData = bingoService.addUser(socket.id, userPhone);
+        userData = bingoService.addUser(socket.id, userPhone, isTrialUser);
       }
       
       const gameState = bingoService.getState();
@@ -123,12 +128,16 @@ function handleCallNumber(io) {
     // Para jugadores: números enmascarados
     const maskedApproaching = approaching.map(p => ({
       phone: p.phone.substring(0, 3) + '***' + p.phone.substring(6),
-      missing: p.missing
+      missing: p.missing,
+      isTrial: p.isTrial
     }));
     io.emit('bingo:approaching', maskedApproaching);
 
     if (result.winner) {
       io.emit('bingo:winner', result.winner);
+    } else if (result.trialWinner) {
+      // Notificar al ganador de prueba (esto no detiene el juego real)
+      io.emit('bingo:trial_winner', result.trialWinner);
     }
   } else {
     const state = bingoService.getState();

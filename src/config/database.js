@@ -28,4 +28,20 @@ db.run(createTableQuery, (err) => {
   }
 });
 
+// Create table for used trials
+const createUsedTrialsTable = `
+  CREATE TABLE IF NOT EXISTS used_trials (
+    phone TEXT PRIMARY KEY,
+    used_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+`;
+
+db.run(createUsedTrialsTable, (err) => {
+  if (err) {
+    console.error('Error creating table "used_trials":', err.message);
+  } else {
+    console.log('Table "used_trials" is ready.');
+  }
+});
+
 module.exports = db;
