@@ -282,6 +282,15 @@
 
         btnTrial.addEventListener('click', () => {
             isTrialMode = true;
+            
+            // Evento GTM: Solicitud de prueba iniciada
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push({
+                'event': 'trial_requested',
+                'category': 'conversion',
+                'label': 'landing_page'
+            });
+
             btnTrial.style.display = 'none';
             if (topTrialBanner) topTrialBanner.style.display = 'none';
             trialBadge.style.display = 'block';
@@ -387,6 +396,14 @@
             btnValidate.disabled = true;
             btnValidate.innerText = 'ENVIANDO...';
 
+            // Evento GTM: Intento de pago/registro
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push({
+                'event': 'payment_attempt',
+                'is_trial': isTrialMode,
+                'phone_start': phone.substring(0, 3)
+            });
+
             try {
                 const formData = new FormData();
                 formData.append('phone', phone);
@@ -401,9 +418,22 @@
                     method: 'POST',
                     body: formData
                 });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || 'Error del servidor');
+                }
+
                 const data = await response.json();
 
                 if (data.success) {
+                    // Evento GTM: Registro exitoso
+                    window.dataLayer.push({
+                        'event': 'payment_success',
+                        'is_trial': isTrialMode,
+                        'request_token': data.requestToken
+                    });
+
                     if (data.message) {
                         alert(data.message);
                     }
@@ -417,7 +447,14 @@
                     btnValidate.innerText = isTrialMode ? '¡OBTÉN MI PRUEBA GRATIS!' : '¡OBTÉN TU CARTILLA POR S/ 5!';
                 }
             } catch (err) {
-                alert('Hubo un error de conexión. Intenta nuevamente o por WhatsApp.');
+                console.error('Error en validate-payment:', err);
+                // Evento GTM: Error en proceso
+                window.dataLayer.push({
+                    'event': 'payment_error',
+                    'error_msg': err.message
+                });
+
+                alert('Hubo un inconveniente al procesar tu solicitud: ' + err.message + '. Si el problema persiste, contacta a soporte por WhatsApp.');
                 btnValidate.disabled = false;
                 btnValidate.innerText = isTrialMode ? '¡OBTÉN MI PRUEBA GRATIS!' : '¡OBTÉN TU CARTILLA POR S/ 5!';
             }

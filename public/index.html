@@ -111,6 +111,14 @@
 
         socket.on('bingo:player_info', (data) => {
             playerName = data.name;
+
+            // Evento GTM: Jugador ingresó al juego
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push({
+                'event': 'game_joined',
+                'player_name': playerName
+            });
+
             // Intento 1: Saludo automático inmediato
             setTimeout(() => welcomePlayer(playerName), 500);
         });
@@ -186,6 +194,13 @@
             currentNumberSpan.textContent = isMe ? '¡GANASTE!' : '¡BINGO!';
             
             if (isMe) {
+                // Evento GTM: Ganador Real
+                window.dataLayer = window.dataLayer || [];
+                window.dataLayer.push({
+                    'event': 'bingo_win',
+                    'player_name': playerName
+                });
+
                 gameOverMessage.textContent = '¡Felicidades! Has completado una línea y ganado el BINGO.';
                 gameOverMessage.style.color = '#28a745';
             } else {
@@ -199,6 +214,13 @@
         socket.on('bingo:trial_winner', (data) => {
             const isMe = socket.id === data.id;
             if (isMe) {
+                // Evento GTM: Ganador de prueba
+                window.dataLayer = window.dataLayer || [];
+                window.dataLayer.push({
+                    'event': 'trial_win',
+                    'player_name': playerName
+                });
+
                 currentNumberSpan.textContent = '¡BINGO!';
                 gameOverMessage.textContent = '¡Felicidades! Has completado tu cartilla (MODO PRUEBA). ¡Imagina ganar el pozo real!';
                 gameOverMessage.style.color = '#6c5ce7';
@@ -251,6 +273,12 @@
 
         function sendReaction(text) {
             socket.emit('bingo:reaction', text);
+            // Evento GTM: Reacción enviada (Engagement)
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push({
+                'event': 'reaction_sent',
+                'reaction_type': text
+            });
         }
 
         function showFloatingReaction(sender, text) {

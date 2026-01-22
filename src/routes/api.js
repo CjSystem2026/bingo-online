@@ -4,11 +4,14 @@ const orderService = require('../services/orderService');
 const upload = require('../config/multer');
 const basicAuth = require('../config/auth');
 const { emitBingoStats } = require('../sockets/bingoSocket');
-const Tesseract = require('tesseract.js');
+const vision = require('@google-cloud/vision');
 const path = require('path');
 
 const fs = require('fs');
 const { calculateFileHash, isHashProcessed, addProcessedHash, hasUsedTrial, registerUsedTrial } = require('../utils/hashStore');
+
+// Cliente de Google Cloud Vision
+const visionClient = new vision.ImageAnnotatorClient();
 
 module.exports = (io) => {
   // API: Verificar si un número puede usar la prueba gratis
@@ -105,20 +108,30 @@ module.exports = (io) => {
 
         if (req.file && !isTrial) {
           try {
-            // Usar spa para español
-            const { data: { text } } = await Tesseract.recognize(req.file.path, 'spa');
-            console.log('[OCR] Texto detectado:', text);
+            // Usar Google Cloud Vision API con un timeout de seguridad de 8 segundos
+            const ocrTask = visionClient.textDetection(req.file.path);
+            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('OCR_TIMEOUT')), 8000));
+            
+            const [result] = await Promise.race([ocrTask, timeoutPromise]);
+            const detections = result.textAnnotations;
+            const text = detections.length > 0 ? detections[0].description : '';
+            
+            console.log('[OCR-VISION] Texto detectado:', text);
 
             // Intentar extraer Código de Operación
-            const codeMatch = text.match(/(?:operaci[oó]n|N[°º]|Nro\.?)\s*:?\s*(\d{5,15})/i);
+            const codeMatch = text.match(/(?:operaci[oó]n|N[°º]|Nro\.?|Transacción)\s*:?\s*(\d{5,20})/i);
             if (codeMatch) extractedCode = codeMatch[1];
 
             // Intentar extraer Nombre (Yape: después de "a" o "yapeado a")
-            const nameMatch = text.match(/(?:yapeado a|enviado a|Destino|a)\s*:?\s*\n?([A-ZÑ\s]{3,30})/i);
+            const nameMatch = text.match(/(?:yapeado a|enviado a|Destino|a|Para)\s*:?\s*\n?([A-ZÑ\s]{3,40})/i);
             if (nameMatch) extractedName = nameMatch[1].trim().split('\n')[0];
 
           } catch (ocrError) {
-            console.error('[OCR] Error al procesar imagen:', ocrError);
+            if (ocrError.message === 'OCR_TIMEOUT') {
+              console.warn('[OCR-VISION] Timeout alcanzado. Continuando sin OCR automático.');
+            } else {
+              console.error('[OCR-VISION] Error al procesar imagen:', ocrError);
+            }
           }
         } else if (isTrial) {
           extractedCode = 'PRUEBA';
