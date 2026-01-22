@@ -16,6 +16,7 @@
     "multer": "^1.4.5-lts.1",
     "nodemon": "^3.0.3",
     "socket.io": "^4.7.4",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "tesseract.js": "^7.0.0"
   }
 }

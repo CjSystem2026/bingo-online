@@ -9,13 +9,6 @@ class OrderService {
   }
 
   /**
-   * Registra un nuevo pedido en estado pendiente.
-   * @param {string} phone - Celular del cliente.
-   * @param {string|null} operationCode - Código de operación Yape/Plin (Opcional).
-   * @param {string|null} screenshot - Ruta del archivo de imagen subido.
-   * @returns {Object} El objeto de la orden creada.
-   */
-  /**
    * Busca una orden activa (pendiente o aprobada) por el número de teléfono.
    * @param {string} phone 
    * @returns {Object|null}
@@ -32,7 +25,16 @@ class OrderService {
     return null;
   }
 
-  addPendingOrder(phone, operationCode, screenshot, isTrial = false) {
+  /**
+   * Registra un nuevo pedido en estado pendiente.
+   * @param {string} phone - Celular del cliente.
+   * @param {string|null} operationCode - Código de operación Yape/Plin (Opcional).
+   * @param {string|null} screenshot - Ruta del archivo de imagen subido.
+   * @param {boolean} isTrial - Indica si es un pedido de prueba.
+   * @param {string|null} playerName - Nombre del jugador (opcional).
+   * @returns {Object} El objeto de la orden creada.
+   */
+  addPendingOrder(phone, operationCode, screenshot, isTrial = false, playerName = null) {
     // Si ya existe una orden activa para este teléfono, no creamos una nueva
     const existing = this.findOrderByPhone(phone);
     if (existing) return existing;
@@ -42,6 +44,7 @@ class OrderService {
       id: Date.now(),
       requestToken,
       phone,
+      playerName: playerName || 'Jugador',
       operationCode: operationCode || 'N/A',
       screenshot,
       isTrial,
@@ -57,9 +60,11 @@ class OrderService {
    * @param {number} id - ID de la orden.
    * @param {number} quantity - Cantidad de cartillas a generar.
    * @param {boolean} isTrialOverride - Forzar estado de prueba al aprobar.
+   * @param {string|null} playerNameOverride - Nombre corregido por el admin.
+   * @param {string|null} operationCodeOverride - Código corregido por el admin.
    * @returns {Array<Object>|null} Lista de aprobaciones o null si no se encuentra.
    */
-  approveOrder(id, quantity = 1, isTrialOverride = null) {
+  approveOrder(id, quantity = 1, isTrialOverride = null, playerNameOverride = null, operationCodeOverride = null) {
     const index = this.pendingOrders.findIndex(o => o.id === id);
     if (index !== -1) {
       const order = this.pendingOrders.splice(index, 1)[0];
@@ -67,10 +72,19 @@ class OrderService {
       
       // Si se pasa isTrialOverride, usamos ese valor. Si no, usamos el que traía la orden.
       const isTrial = isTrialOverride !== null ? isTrialOverride : order.isTrial;
+      const playerName = playerNameOverride !== null ? playerNameOverride : order.playerName;
+      const operationCode = operationCodeOverride !== null ? operationCodeOverride : order.operationCode;
 
       for (let i = 0; i < quantity; i++) {
         const token = Math.random().toString(36).substring(2, 15);
-        const approvalData = { ...order, token, status: 'approved', isTrial };
+        const approvalData = { 
+          ...order, 
+          token, 
+          status: 'approved', 
+          isTrial, 
+          playerName, 
+          operationCode 
+        };
         this.approvedOrders.set(token, approvalData);
         results.push(approvalData);
       }

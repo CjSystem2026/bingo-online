@@ -119,6 +119,11 @@
                     
                     <div id="trialBadge" class="trial-badge" style="display: none;">MODO PRUEBA ACTIVADO</div>
 
+                    <div id="nameContainer" style="display: none; width: 100%; max-width: 350px;">
+                        <input type="text" id="userName" placeholder="Tu nombre o apodo" maxlength="20"
+                            style="padding: 15px; border-radius: 10px; border: 1px solid #ccc; width: 100%; font-size: 1.1rem; margin-bottom: 10px;">
+                    </div>
+
                     <input type="text" id="userPhone" placeholder="Tu número de celular (9 dígitos)" maxlength="9"
                         inputmode="numeric"
                         style="padding: 15px; border-radius: 10px; border: 1px solid #ccc; width: 100%; max-width: 350px; font-size: 1.1rem;">
@@ -280,9 +285,10 @@
             btnTrial.style.display = 'none';
             if (topTrialBanner) topTrialBanner.style.display = 'none';
             trialBadge.style.display = 'block';
+            document.getElementById('nameContainer').style.display = 'block';
             screenshotContainer.style.display = 'none';
             btnBackToNormal.style.display = 'block';
-            paymentStepTitle.innerText = 'Ingresa tu número para recibir tu cartilla de PRUEBA:';
+            paymentStepTitle.innerText = 'Ingresa tus datos para recibir tu cartilla de PRUEBA:';
             btnValidate.innerText = '¡OBTÉN MI PRUEBA GRATIS!';
         });
 
@@ -293,6 +299,7 @@
                 topTrialBanner.style.display = 'block';
             }
             trialBadge.style.display = 'none';
+            document.getElementById('nameContainer').style.display = 'none';
             screenshotContainer.style.display = 'block';
             btnBackToNormal.style.display = 'none';
             paymentStepTitle.innerText = 'Luego, ingresa tu número y adjunta tu comprobante:';
@@ -354,6 +361,7 @@
 
         btnValidate.addEventListener('click', async () => {
             const phone = document.getElementById('userPhone').value;
+            const playerName = document.getElementById('userName').value;
             const screenshotFile = document.getElementById('screenshot').files[0];
 
             if (!phone) {
@@ -363,6 +371,11 @@
 
             if (phone.length !== 9) {
                 alert('El número de celular debe tener exactamente 9 dígitos.');
+                return;
+            }
+
+            if (isTrialMode && !playerName) {
+                alert('Por favor, ingresa tu nombre para saludarte en el juego.');
                 return;
             }
 
@@ -377,6 +390,7 @@
             try {
                 const formData = new FormData();
                 formData.append('phone', phone);
+                if (playerName) formData.append('playerName', playerName);
                 if (screenshotFile) formData.append('screenshot', screenshotFile);
                 if (isTrialMode) {
                     formData.append('isTrial', 'true');

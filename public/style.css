@@ -112,36 +112,6 @@ h1 {
     text-shadow: 2px 2px 0 rgba(255,255,255,0.5);
 }
 
-/* Audio Button */
-.audio-controls {
-    text-align: center;
-    margin-bottom: 20px;
-}
-
-.audio-btn {
-    background-color: #f8f9fa;
-    color: #666;
-    border: 1px solid #ddd;
-    padding: 8px 15px;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.audio-btn.enabled {
-    background-color: var(--secondary);
-    color: white;
-    border-color: var(--secondary);
-}
-
-.audio-notice {
-    font-size: 0.7rem;
-    color: var(--danger);
-    margin-top: 4px;
-}
-
 /* Tabs */
 .tabs-container {
     display: flex;

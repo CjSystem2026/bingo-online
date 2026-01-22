@@ -4,6 +4,8 @@ const orderService = require('../services/orderService');
 const upload = require('../config/multer');
 const basicAuth = require('../config/auth');
 const { emitBingoStats } = require('../sockets/bingoSocket');
+const Tesseract = require('tesseract.js');
+const path = require('path');
 
 const fs = require('fs');
 const { calculateFileHash, isHashProcessed, addProcessedHash, hasUsedTrial, registerUsedTrial } = require('../utils/hashStore');
@@ -33,6 +35,7 @@ module.exports = (io) => {
       }
 
       const isTrial = req.body.isTrial === 'true';
+      const playerName = req.body.playerName; // Para pruebas
 
       // 1. Validar que el archivo exista (solo si no es prueba)
       if (!req.file && !isTrial) {
@@ -64,7 +67,7 @@ module.exports = (io) => {
           await addProcessedHash(hash);
         }
 
-        const { phone, operationCode } = req.body;
+        const { phone } = req.body;
         const phoneDigits = phone ? phone.replace(/\D/g, '') : '';
         
         if (phoneDigits.length !== 9) {
@@ -96,10 +99,33 @@ module.exports = (io) => {
           });
         }
 
-        const screenshotPath = req.file ? `/uploads/${req.file.filename}` : null;
-        const codeStr = operationCode ? operationCode.substring(0, 10) : (isTrial ? 'PRUEBA' : 'N/A');
+        // --- EXTRACCIÓN AUTOMÁTICA (OCR) SI NO ES PRUEBA ---
+        let extractedName = playerName || 'Jugador';
+        let extractedCode = 'N/A';
 
-        const newOrder = orderService.addPendingOrder(phoneDigits, codeStr, screenshotPath, isTrial);
+        if (req.file && !isTrial) {
+          try {
+            // Usar spa para español
+            const { data: { text } } = await Tesseract.recognize(req.file.path, 'spa');
+            console.log('[OCR] Texto detectado:', text);
+
+            // Intentar extraer Código de Operación
+            const codeMatch = text.match(/(?:operaci[oó]n|N[°º]|Nro\.?)\s*:?\s*(\d{5,15})/i);
+            if (codeMatch) extractedCode = codeMatch[1];
+
+            // Intentar extraer Nombre (Yape: después de "a" o "yapeado a")
+            const nameMatch = text.match(/(?:yapeado a|enviado a|Destino|a)\s*:?\s*\n?([A-ZÑ\s]{3,30})/i);
+            if (nameMatch) extractedName = nameMatch[1].trim().split('\n')[0];
+
+          } catch (ocrError) {
+            console.error('[OCR] Error al procesar imagen:', ocrError);
+          }
+        } else if (isTrial) {
+          extractedCode = 'PRUEBA';
+        }
+
+        const screenshotPath = req.file ? `/uploads/${req.file.filename}` : null;
+        const newOrder = orderService.addPendingOrder(phoneDigits, extractedCode, screenshotPath, isTrial, extractedName);
 
         if (isTrial) {
           // APROBACIÓN AUTOMÁTICA PARA PRUEBA GRATIS
@@ -133,9 +159,9 @@ module.exports = (io) => {
 
   // API: Aprobar pedido (Protegida)
   router.post('/approve-order', basicAuth, async (req, res) => {
-    const { id, quantity, isTrial: isTrialOverride } = req.body;
+    const { id, quantity, isTrial: isTrialOverride, playerName, operationCode } = req.body;
     const qty = parseInt(quantity) || 1;
-    const approvalResults = orderService.approveOrder(id, qty, isTrialOverride === true);
+    const approvalResults = orderService.approveOrder(id, qty, isTrialOverride === true, playerName, operationCode);
     
     if (approvalResults && approvalResults.length > 0) {
       // Si es una prueba, registrar el número como usado

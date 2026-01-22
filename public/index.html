@@ -53,11 +53,6 @@
             <h3>🔥 ¡Jugadores en Zona! 🔥</h3>
             <div id="approachingList" class="approaching-list"></div>
         </div>
-
-        <div class="audio-controls">
-            <button id="enableAudioBtn" class="audio-btn">🔇 Activar Sonido</button>
-            <p id="audioNotice" class="audio-notice">Pulsa para escuchar los números</p>
-        </div>
         
         <div class="bingo-card-section">
             <h2 id="cardTitle">Tu Cartilla</h2>
@@ -91,29 +86,38 @@
         const statCards = document.getElementById('statCards');
         const statPrize = document.getElementById('statPrize');
         const cardTitle = document.getElementById('cardTitle');
-        const enableAudioBtn = document.getElementById('enableAudioBtn');
-        const audioNotice = document.getElementById('audioNotice');
 
         let userCards = [];
         let gameEnded = false;
         let audioEnabled = false;
         let currentCardIndex = 0;
+        let playerName = 'Jugador';
+        let hasWelcomed = false;
 
-        enableAudioBtn.addEventListener('click', () => {
-            audioEnabled = !audioEnabled;
-            if (audioEnabled) {
-                enableAudioBtn.textContent = '🔊 Sonido Activado';
-                enableAudioBtn.classList.add('enabled');
-                audioNotice.style.display = 'none';
-                const utterance = new SpeechSynthesisUtterance('Sonido activado');
+        function welcomePlayer(name) {
+            if (hasWelcomed) return;
+            if ('speechSynthesis' in window) {
+                const text = `Hola ${name}, bienvenido.`;
+                const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'es-ES';
+                utterance.rate = 0.9;
                 window.speechSynthesis.speak(utterance);
-            } else {
-                enableAudioBtn.textContent = '🔇 Sonido Silenciado';
-                enableAudioBtn.classList.remove('enabled');
-                audioNotice.style.display = 'block';
+                hasWelcomed = true;
+
+                // ACTIVACIÓN AUTOMÁTICA DE SONIDO
+                audioEnabled = true;
             }
+        }
+
+        socket.on('bingo:player_info', (data) => {
+            playerName = data.name;
+            // Intento 1: Saludo automático inmediato
+            setTimeout(() => welcomePlayer(playerName), 500);
         });
+
+        // Intento 2: Saludo al primer toque de pantalla (respaldo si el navegador bloquea el anterior)
+        document.addEventListener('click', () => welcomePlayer(playerName), { once: true });
+        document.addEventListener('touchstart', () => welcomePlayer(playerName), { once: true });
 
         function getBingoLetter(num) {
             if (num <= 15) return 'B';

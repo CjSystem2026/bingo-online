@@ -62,6 +62,9 @@ module.exports = (io) => {
       // Notificar a todos los admins el cambio en la lista de jugadores
       io.emit('admin:player_list', bingoService.getPlayers());
 
+      // Enviamos información del jugador (Nombre)
+      socket.emit('bingo:player_info', { name: order.playerName || 'Jugador' });
+
       // Enviamos el arreglo de cartillas (solo las matrices de números)
       const cardsOnly = userData.cards.map(c => c.card);
       socket.emit('bingo:your_cards', cardsOnly);
