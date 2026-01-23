@@ -108,23 +108,51 @@ module.exports = (io) => {
 
         if (req.file && !isTrial) {
           try {
-            // Usar Google Cloud Vision API con un timeout de seguridad de 8 segundos
-            const ocrTask = visionClient.textDetection(req.file.path);
-            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('OCR_TIMEOUT')), 8000));
+            console.log('[OCR-VISION] Iniciando detección para:', req.file.path);
+            
+            // Usar Google Cloud Vision API con un timeout de seguridad de 10 segundos
+            const ocrTask = visionClient.documentTextDetection(req.file.path);
+            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('OCR_TIMEOUT')), 10000));
             
             const [result] = await Promise.race([ocrTask, timeoutPromise]);
-            const detections = result.textAnnotations;
-            const text = detections.length > 0 ? detections[0].description : '';
             
-            console.log('[OCR-VISION] Texto detectado:', text);
+            if (!result || (!result.fullTextAnnotation && !result.textAnnotations)) {
+              console.warn('[OCR-VISION] La API no devolvió anotaciones de texto.');
+            }
 
-            // Intentar extraer Código de Operación
-            const codeMatch = text.match(/(?:operaci[oó]n|N[°º]|Nro\.?|Transacción)\s*:?\s*(\d{5,20})/i);
-            if (codeMatch) extractedCode = codeMatch[1];
+            // fullTextAnnotation es la mejor opción para obtener el texto estructurado completo
+            const text = result.fullTextAnnotation ? result.fullTextAnnotation.text : 
+                         (result.textAnnotations && result.textAnnotations.length > 0 ? result.textAnnotations[0].description : '');
+            
+            if (!text) {
+              console.warn('[OCR-VISION] No se detectó ningún texto en la imagen.');
+            }
 
-            // Intentar extraer Nombre (Yape: después de "a" o "yapeado a")
-            const nameMatch = text.match(/(?:yapeado a|enviado a|Destino|a|Para)\s*:?\s*\n?([A-ZÑ\s]{3,40})/i);
-            if (nameMatch) extractedName = nameMatch[1].trim().split('\n')[0];
+            // Limpiar el texto para facilitar la búsqueda (unir líneas y quitar espacios extra)
+            const cleanText = text.replace(/\n/g, ' ').replace(/\s+/g, ' ');
+            console.log('[OCR-VISION] Texto limpio para procesar:', cleanText.substring(0, 500));
+
+            // 1. Intentar extraer Código de Operación
+            // Busca patrones comunes de Yape/Plin (operación, ref, nro, etc.) seguido de 6-20 dígitos
+            const codeMatch = cleanText.match(/(?:operaci[oó]n|N[°º]|Nro\.?|Transacci[oó]n|C[oó]digo|Ref\.?|Constancia)\s*:?\s*(\d{6,20})/i);
+            if (codeMatch) {
+              extractedCode = codeMatch[1];
+            } else {
+              // Intento secundario: buscar cualquier cadena larga de números (posible código si no hay etiquetas)
+              const backupCodeMatch = cleanText.match(/\b\d{8,15}\b/);
+              if (backupCodeMatch) extractedCode = backupCodeMatch[0];
+            }
+
+            // 2. Intentar extraer Nombre
+            // Busca frases comunes y captura el texto siguiente (letras y espacios)
+            const nameMatch = cleanText.match(/(?:yapeaste a|pago a|enviado a|envió a|a favor de|Destino|Para|Nombre|Beneficiario)\s*:?\s*([a-zA-ZÑñ\s]{3,50})/i);
+            if (nameMatch) {
+              extractedName = nameMatch[1].trim();
+            } else {
+              // Si no encuentra por frases clave, intentar buscar después de palabras comunes de final de frase
+              const fallbackNameMatch = cleanText.match(/(?:a|hacia)\s+([A-Z][a-zñ]+\s[A-Z][a-zñ]+)/);
+              if (fallbackNameMatch) extractedName = fallbackNameMatch[1].trim();
+            }
 
           } catch (ocrError) {
             if (ocrError.message === 'OCR_TIMEOUT') {
