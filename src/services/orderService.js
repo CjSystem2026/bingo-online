@@ -2,6 +2,8 @@
  * OrderService - Gestión del flujo de pagos y pedidos.
  * Centraliza el almacenamiento temporal de órdenes pendientes y aprobadas.
  */
+const { saveOrderToHistory } = require('../utils/orderPersistence');
+
 class OrderService {
   constructor() {
     this.pendingOrders = [];
@@ -74,6 +76,15 @@ class OrderService {
       const isTrial = isTrialOverride !== null ? isTrialOverride : order.isTrial;
       const playerName = playerNameOverride !== null ? playerNameOverride : order.playerName;
       const operationCode = operationCodeOverride !== null ? operationCodeOverride : order.operationCode;
+
+      // Guardar en el historial de la base de datos (SQLite) para permanencia
+      saveOrderToHistory({ 
+        phone: order.phone, 
+        playerName, 
+        operationCode, 
+        quantity, 
+        isTrial 
+      }).catch(err => console.error('[OrderService] Error al persistir orden:', err));
 
       for (let i = 0; i < quantity; i++) {
         const token = Math.random().toString(36).substring(2, 15);

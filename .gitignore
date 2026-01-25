@@ -61,3 +61,6 @@ out
 
 # VSCode
 .vscode/
+
+# GHA Credentials
+gha-creds-2c1a24d129bc9848.json

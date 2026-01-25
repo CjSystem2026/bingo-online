@@ -6,6 +6,8 @@ services:
     container_name: bingo_socketio
     ports:
       - "3000:3000"
+    env_file:
+      - .env
     volumes:
       - .:/app
       - /app/node_modules

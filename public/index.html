@@ -12,6 +12,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bingo Socket.IO</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Confeti para celebraciones -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 </head>
 <body>
     <!-- Google Tag Manager (noscript) -->
@@ -93,14 +95,35 @@
         let currentCardIndex = 0;
         let playerName = 'Jugador';
         let hasWelcomed = false;
+        let lastEncouragementTime = 0;
+
+        // SELECCIÓN DE VOZ MEJORADA
+        let selectedVoice = null;
+        function loadVoices() {
+            const voices = window.speechSynthesis.getVoices();
+            // Prioridad: Google Español, voces Naturales, es-PE (Perú), es-419 (Latinoamérica), es-MX, es-ES
+            selectedVoice = voices.find(v => v.name.includes('Google') && v.lang.startsWith('es')) ||
+                            voices.find(v => v.name.includes('Natural') && v.lang.startsWith('es')) ||
+                            voices.find(v => v.lang === 'es-PE') ||
+                            voices.find(v => v.lang === 'es-419') ||
+                            voices.find(v => v.lang === 'es-MX') ||
+                            voices.find(v => v.lang.startsWith('es'));
+        }
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.onvoiceschanged = loadVoices;
+            loadVoices();
+        }
 
         function welcomePlayer(name) {
             if (hasWelcomed) return;
             if ('speechSynthesis' in window) {
-                const text = `Hola ${name}, bienvenido.`;
+                // Mensaje más natural
+                const text = `¡Hola ${name}! Qué bueno tenerte aquí. Mucha suerte en tu partida de hoy.`;
                 const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'es-ES';
-                utterance.rate = 0.9;
+                if (selectedVoice) utterance.voice = selectedVoice;
+                utterance.lang = 'es-PE';
+                utterance.rate = 0.95;
+                utterance.pitch = 1;
                 window.speechSynthesis.speak(utterance);
                 hasWelcomed = true;
 
@@ -140,10 +163,37 @@
                 const letter = getBingoLetter(number);
                 const text = `${letter}, ${number}`;
                 const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'es-ES';
+                if (selectedVoice) utterance.voice = selectedVoice;
+                utterance.lang = 'es-PE';
                 utterance.rate = 0.9;
                 window.speechSynthesis.speak(utterance);
             }
+        }
+
+        function speakCustom(text) {
+            if (audioEnabled && 'speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                if (selectedVoice) utterance.voice = selectedVoice;
+                utterance.lang = 'es-PE';
+                utterance.rate = 0.95;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function launchVictoryConfetti() {
+            const duration = 5 * 1000;
+            const animationEnd = Date.now() + duration;
+            const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+            const randomInRange = (min, max) => Math.random() * (max - min) + min;
+
+            const interval = setInterval(function() {
+                const timeLeft = animationEnd - Date.now();
+                if (timeLeft <= 0) return clearInterval(interval);
+                const particleCount = 50 * (timeLeft / duration);
+                confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+                confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+            }, 250);
         }
 
         socket.on('bingo:your_cards', (cards) => {
@@ -194,6 +244,10 @@
             currentNumberSpan.textContent = isMe ? '¡GANASTE!' : '¡BINGO!';
             
             if (isMe) {
+                launchVictoryConfetti();
+                // AUDIO TRIUNFAL REAL
+                speakCustom(`¡Felicidades ${playerName}! Has cantado Bingo y eres el ganador del pozo. ¡Increíble victoria!`);
+                
                 // Evento GTM: Ganador Real
                 window.dataLayer = window.dataLayer || [];
                 window.dataLayer.push({
@@ -201,11 +255,19 @@
                     'player_name': playerName
                 });
 
-                gameOverMessage.textContent = '¡Felicidades! Has completado una línea y ganado el BINGO.';
-                gameOverMessage.style.color = '#28a745';
+                gameOverMessage.innerHTML = '🎉 <strong>¡FELICIDADES!</strong> 🎉<br>Has completado tu cartilla y ganado el <strong>BINGO REAL</strong>.<br>Nos pondremos en contacto contigo para tu premio.';
+                gameOverMessage.style.color = '#155724';
+                gameOverMessage.style.background = '#d4edda';
+                gameOverMessage.style.padding = '20px';
+                gameOverMessage.style.borderRadius = '15px';
+                gameOverMessage.style.border = '3px solid #28a745';
+                gameOverMessage.style.fontSize = '1.2rem';
             } else {
                 gameOverMessage.textContent = `El jugador con celular ${winnerPhone} ha ganado el BINGO.`;
                 gameOverMessage.style.color = '#dc3545';
+                gameOverMessage.style.background = 'none';
+                gameOverMessage.style.border = 'none';
+                gameOverMessage.style.fontSize = '1rem';
             }
             
             gameOverMessage.classList.remove('hidden');
@@ -214,6 +276,7 @@
         socket.on('bingo:trial_winner', (data) => {
             const isMe = socket.id === data.id;
             if (isMe) {
+                launchVictoryConfetti();
                 // Evento GTM: Ganador de prueba
                 window.dataLayer = window.dataLayer || [];
                 window.dataLayer.push({
@@ -222,9 +285,42 @@
                 });
 
                 currentNumberSpan.textContent = '¡BINGO!';
-                gameOverMessage.textContent = '¡Felicidades! Has completado tu cartilla (MODO PRUEBA). ¡Imagina ganar el pozo real!';
+                gameOverMessage.innerHTML = `
+                    🏆 <strong>¡Felicidades!</strong> Has ganado en el <strong>MODO PRUEBA</strong>.<br><br>
+                    ¿Te gustó la experiencia? Prepárate...<br>
+                    <span id="redirectTimer" style="font-size: 1.2rem; font-weight: bold;">Redirigiéndote para jugar por premios reales en 10...</span>
+                `;
                 gameOverMessage.style.color = '#6c5ce7';
+                gameOverMessage.style.background = '#f0f0ff';
+                gameOverMessage.style.padding = '15px';
+                gameOverMessage.style.borderRadius = '10px';
+                gameOverMessage.style.border = '2px solid #6c5ce7';
                 gameOverMessage.classList.remove('hidden');
+
+                // AUDIO MOTIVADOR: Intentar enganchar al usuario con voz
+                if ('speechSynthesis' in window) {
+                    const msg = new SpeechSynthesisUtterance("¡Increíble victoria! Has demostrado tener mucha suerte. Ahora, prueba tu suerte de verdad y gana premios reales en efectivo. Te estamos redirigiendo para que obtengas tu cartilla oficial.");
+                    if (selectedVoice) msg.voice = selectedVoice;
+                    msg.lang = 'es-PE';
+                    msg.rate = 0.95;
+                    window.speechSynthesis.speak(msg);
+                }
+
+                // Lógica de redirección automática para romper el bucle
+                let timeLeft = 10;
+                const timerEl = document.getElementById('redirectTimer');
+                const interval = setInterval(() => {
+                    timeLeft--;
+                    if (timeLeft > 0) {
+                        timerEl.innerText = `Redirigiéndote para jugar por premios reales en ${timeLeft}...`;
+                    } else {
+                        clearInterval(interval);
+                        // LIMPIEZA CRÍTICA: Borrar tokens para evitar bucle en el inicio
+                        localStorage.removeItem('bingo_phone');
+                        localStorage.removeItem('bingo_request_token');
+                        window.location.href = '/';
+                    }
+                }, 1000);
             }
         });
 
@@ -362,6 +458,43 @@
             cells.forEach(cell => {
                 cell.classList.add('marked');
             });
+            // Después de marcar, verificar si el jugador está cerca de ganar
+            setTimeout(checkEncouragement, 1000);
+        }
+
+        function checkEncouragement() {
+            if (!audioEnabled || gameEnded || Date.now() - lastEncouragementTime < 40000) return;
+
+            let minMissing = 5;
+            const tables = bingoCardContainer.querySelectorAll('table');
+            
+            tables.forEach(table => {
+                const rows = table.querySelectorAll('tr');
+                // Verificar filas
+                for (let r = 1; r < rows.length; r++) {
+                    let missing = 0;
+                    const tds = rows[r].querySelectorAll('td');
+                    tds.forEach(td => { if (!td.classList.contains('marked')) missing++; });
+                    if (missing < minMissing) minMissing = missing;
+                }
+                // Verificar columnas
+                for (let c = 0; c < 5; c++) {
+                    let missing = 0;
+                    for (let r = 1; r < rows.length; r++) {
+                        const td = rows[r].querySelectorAll('td')[c];
+                        if (!td.classList.contains('marked')) missing++;
+                    }
+                    if (missing < minMissing) minMissing = missing;
+                }
+            });
+
+            if (minMissing === 1 || minMissing === 2) {
+                const msg = minMissing === 1 
+                    ? `¡Atención ${playerName}! Solo te falta un número para el Bingo. ¡Mucha suerte!` 
+                    : `¡Prepárate ${playerName}! Estás muy cerca de ganar tu Bingo.`;
+                speakCustom(msg);
+                lastEncouragementTime = Date.now();
+            }
         }
     </script>
 </body>

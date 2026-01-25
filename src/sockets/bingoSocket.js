@@ -2,6 +2,9 @@ const bingoService = require('../services/bingoService');
 const orderService = require('../services/orderService');
 const { clearAllHashes } = require('../utils/hashStore');
 
+// Almacén de intervalos para el modo demo automático de usuarios trial
+const trialIntervals = new Map();
+
 function emitBingoStats(io) {
   // Solo contar cartillas que NO son de prueba para el pozo
   const approvedOrders = Array.from(orderService.getApprovedOrders().values());
@@ -70,6 +73,11 @@ module.exports = (io) => {
       socket.emit('bingo:your_cards', cardsOnly);
       socket.emit('bingo:initial_numbers', gameState.calledNumbers);
       emitBingoStats(io); // Sincronizar estadísticas con todos
+
+      // Iniciar Autoplay si es usuario de prueba y no hay juego activo
+      if (isTrialUser && gameState.gameActive && !gameState.winner && gameState.calledNumbers.length === 0) {
+        startTrialAutoPlay(socket, io, userData);
+      }
     }
 
     // Escuchar reacciones rápidas
@@ -105,11 +113,18 @@ module.exports = (io) => {
       
       console.log("[ADMIN] Juego reiniciado. Lista de jugadores y pedidos vaciada totalmente.");
       io.emit('bingo:reset');
+      io.emit('admin:all_cleared'); // Notificar específicamente a los admins
       emitBingoStats(io); // Resetear estadísticas a cero
     });
 
     socket.on('disconnect', () => {
       if (!isAdmin) {
+        // Limpiar intervalo de demo si existía
+        if (trialIntervals.has(socket.id)) {
+          clearInterval(trialIntervals.get(socket.id));
+          trialIntervals.delete(socket.id);
+        }
+
         bingoService.removeUser(socket.id);
         // Notificar a todos los admins el cambio en la lista de jugadores
         io.emit('admin:player_list', bingoService.getPlayers());
@@ -121,6 +136,9 @@ module.exports = (io) => {
 };
 
 function handleCallNumber(io) {
+  // Al cantar un número real, detenemos todos los autoplays de demo
+  stopAllTrialAutoplays();
+
   const result = bingoService.callNewNumber();
   if (result) {
     io.emit('bingo:new_number', result.number);
@@ -147,6 +165,69 @@ function handleCallNumber(io) {
     if (!state.gameActive && !state.winner) {
         io.emit('bingo:game_over', '¡Juego terminado!');
     }
+  }
+}
+
+/**
+ * Inicia un bucle automático de números cantados solo para un usuario de prueba.
+ * Esto le permite experimentar el juego de inmediato aunque no haya partida real.
+ */
+function startTrialAutoPlay(socket, io, userData) {
+  console.log(`[BINGO-DEMO] Iniciando autoplay para trial: ${socket.id}`);
+  
+  // Lista de números que están en sus cartillas para asegurar que gane en la demo
+  const numbersInCards = new Set();
+  userData.cards.forEach(c => {
+    c.card.forEach(row => {
+      row.forEach(num => {
+        if (typeof num === 'number') numbersInCards.add(num);
+      });
+    });
+  });
+
+  const availableTrialNumbers = Array.from(numbersInCards);
+  // Desordenar para que no sea predecible
+  availableTrialNumbers.sort(() => Math.random() - 0.5);
+
+  const interval = setInterval(() => {
+    if (availableTrialNumbers.length === 0) {
+      clearInterval(interval);
+      trialIntervals.delete(socket.id);
+      return;
+    }
+
+    const nextNum = availableTrialNumbers.pop();
+    
+    // Simular que el servidor canta el número solo para este socket
+    socket.emit('bingo:new_number', nextNum);
+
+    // Actualizar marcas en la memoria del trial (para que el servidor sepa si ganó)
+    userData.cards.forEach(cardSet => {
+      const { card, marked } = cardSet;
+      for (let r = 0; r < 5; r++) {
+        for (let c = 0; c < 5; c++) {
+          if (card[r][c] === nextNum) marked[r][c] = true;
+        }
+      }
+      
+      // Verificar si ganó en su demo
+      if (bingoService.checkBingo(cardSet, socket.id)) {
+        socket.emit('bingo:trial_winner', { id: socket.id, phone: userData.phone });
+        clearInterval(interval);
+        trialIntervals.delete(socket.id);
+      }
+    });
+
+  }, 4000); // Cada 4 segundos un número nuevo en la demo
+
+  trialIntervals.set(socket.id, interval);
+}
+
+function stopAllTrialAutoplays() {
+  if (trialIntervals.size > 0) {
+    console.log(`[BINGO-DEMO] Deteniendo ${trialIntervals.size} autoplays por inicio de juego real.`);
+    trialIntervals.forEach((interval) => clearInterval(interval));
+    trialIntervals.clear();
   }
 }
 

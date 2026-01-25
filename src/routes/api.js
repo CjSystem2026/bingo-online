@@ -9,9 +9,14 @@ const path = require('path');
 
 const fs = require('fs');
 const { calculateFileHash, isHashProcessed, addProcessedHash, hasUsedTrial, registerUsedTrial } = require('../utils/hashStore');
+const { getBusinessMetrics } = require('../utils/orderPersistence');
 
 // Cliente de Google Cloud Vision
-const visionClient = new vision.ImageAnnotatorClient();
+const visionOptions = {};
+if (process.env.GOOGLE_APPLICATION_CREDENTIALS && fs.existsSync(process.env.GOOGLE_APPLICATION_CREDENTIALS)) {
+  visionOptions.keyFilename = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+}
+const visionClient = new vision.ImageAnnotatorClient(visionOptions);
 
 module.exports = (io) => {
   // API: Verificar si un número puede usar la prueba gratis
@@ -144,14 +149,55 @@ module.exports = (io) => {
             }
 
             // 2. Intentar extraer Nombre
-            // Busca frases comunes y captura el texto siguiente (letras y espacios)
-            const nameMatch = cleanText.match(/(?:yapeaste a|pago a|enviado a|envió a|a favor de|Destino|Para|Nombre|Beneficiario)\s*:?\s*([a-zA-ZÑñ\s]{3,50})/i);
-            if (nameMatch) {
-              extractedName = nameMatch[1].trim();
+            // Intentar con varios patrones específicos (incluyendo soporte para tildes y variaciones)
+            const namePatterns = [
+              /(?:yapeaste a|pago a|enviado a|envió a|a favor de|Destino|Para|Nombre|Beneficiario|Receptor|Pagaste a|Pago realizado a)\s*:?\s*([a-zA-ZÑñáéíóúÁÉÍÓÚ\s]{3,50})/i,
+              /¡?Yapeaste!\s+S\/\s*\d+(?:\.\d+)?\s+([a-zA-ZÑñáéíóúÁÉÍÓÚ\s]{3,50})/i,
+              /¡?Yapeaste!\s+([a-zA-ZÑñáéíóúÁÉÍÓÚ\s]{3,50})/i,
+              /(?:a|hacia)\s+([A-ZÁÉÍÓÚ][a-zñáéíóú]+\s[A-ZÁÉÍÓÚ][a-zñáéíóú]+)/
+            ];
+
+            let foundName = null;
+            for (const pattern of namePatterns) {
+              const match = cleanText.match(pattern);
+              if (match && match[1]) {
+                // Limpiar posibles residuos si el regex capturó de más (ej. el "S/" final)
+                let tempName = match[1].split(/\sS\//)[0].trim();
+                // Validar que no sea una etiqueta común y no tenga números
+                if (!/\d/.test(tempName) && !/operaci[oó]n|fecha|banco|yape|plin|monto|total|destino|nro|n[uú]mero|referencia|constancia/i.test(tempName) && tempName.length > 3) {
+                  foundName = tempName;
+                  break;
+                }
+              }
+            }
+
+            if (foundName) {
+              extractedName = foundName;
             } else {
-              // Si no encuentra por frases clave, intentar buscar después de palabras comunes de final de frase
-              const fallbackNameMatch = cleanText.match(/(?:a|hacia)\s+([A-Z][a-zñ]+\s[A-Z][a-zñ]+)/);
-              if (fallbackNameMatch) extractedName = fallbackNameMatch[1].trim();
+              // Búsqueda avanzada por líneas si los patrones fallan
+              const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 2);
+              console.log('[OCR-DEBUG] Líneas detectadas:', lines);
+              
+              // En Yape, el nombre suele estar en la línea siguiente al monto (S/) o antes
+              const montoIdx = lines.findIndex(l => l.includes('S/') || /^\d+(?:\.\d+)?$/.test(l));
+              if (montoIdx !== -1) {
+                const exclusionRegex = /operaci[oó]n|fecha|banco|yape|plin|monto|total|destino|nro|n[uú]mero|referencia|constancia|pago|enviado/i;
+                
+                // Intentar línea siguiente
+                if (lines[montoIdx + 1]) {
+                  const potentialName = lines[montoIdx + 1];
+                  if (/^[a-zA-ZÑñáéíóúÁÉÍÓÚ\s]{4,50}$/.test(potentialName) && !exclusionRegex.test(potentialName)) {
+                    extractedName = potentialName;
+                  }
+                }
+                // Si no funcionó, intentar línea anterior (a veces el monto está abajo)
+                if (extractedName === 'Jugador' && montoIdx > 0) {
+                  const potentialName = lines[montoIdx - 1];
+                  if (/^[a-zA-ZÑñáéíóúÁÉÍÓÚ\s]{4,50}$/.test(potentialName) && !exclusionRegex.test(potentialName)) {
+                    extractedName = potentialName;
+                  }
+                }
+              }
             }
 
           } catch (ocrError) {
@@ -230,6 +276,30 @@ module.exports = (io) => {
   router.get('/check-status/:requestToken', (req, res) => {
     const status = orderService.checkStatus(req.params.requestToken);
     res.json(status);
+  });
+
+  // API: Obtener todos los pedidos (Solo Admin)
+  router.get('/admin/orders', basicAuth, (req, res) => {
+    const pending = orderService.getPendingOrders();
+    const approvedMap = orderService.getApprovedOrders();
+    
+    // Convertir el Map de aprobados a un array para JSON
+    const approved = [];
+    approvedMap.forEach((data, token) => {
+      approved.push({ ...data, token });
+    });
+
+    res.json({ pending, approved });
+  });
+
+  // API: Obtener métricas de negocio (Solo Admin)
+  router.get('/admin/analytics', basicAuth, async (req, res) => {
+    try {
+      const metrics = await getBusinessMetrics();
+      res.json(metrics);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
   return router;

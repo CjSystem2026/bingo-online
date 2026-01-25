@@ -44,4 +44,43 @@ db.run(createUsedTrialsTable, (err) => {
   }
 });
 
+// Create table for players (unique users)
+const createPlayersTable = `
+  CREATE TABLE IF NOT EXISTS players (
+    phone TEXT PRIMARY KEY,
+    name TEXT,
+    last_seen DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+`;
+
+db.run(createPlayersTable, (err) => {
+  if (err) {
+    console.error('Error creating table "players":', err.message);
+  } else {
+    console.log('Table "players" is ready.');
+  }
+});
+
+// Create table for orders history (transactions)
+const createOrdersHistoryTable = `
+  CREATE TABLE IF NOT EXISTS orders_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    phone TEXT,
+    playerName TEXT,
+    operationCode TEXT,
+    quantity INTEGER,
+    isTrial BOOLEAN,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (phone) REFERENCES players(phone)
+  );
+`;
+
+db.run(createOrdersHistoryTable, (err) => {
+  if (err) {
+    console.error('Error creating table "orders_history":', err.message);
+  } else {
+    console.log('Table "orders_history" is ready.');
+  }
+});
+
 module.exports = db;

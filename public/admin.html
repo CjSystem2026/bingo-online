@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel Admin Bingo Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        :root {
+            --primary: #4a3aff;
+            --secondary: #6c5ce7;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --bg: #f4f7f6;
+            --text: #333;
+            --white: #ffffff;
+        }
+
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 0; background: var(--bg); color: var(--text); margin: 0; }
+        
+        /* Navbar */
+        .admin-nav { background: var(--primary); padding: 10px 20px; display: flex; gap: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); position: sticky; top: 0; z-index: 100; }
+        .nav-item { color: white; text-decoration: none; font-weight: 600; padding: 8px 15px; border-radius: 6px; cursor: pointer; transition: background 0.3s; }
+        .nav-item:hover { background: rgba(255,255,255,0.1); }
+        .nav-item.active { background: var(--white); color: var(--primary); }
+
+        .container { max-width: 1100px; margin: 20px auto; width: 100%; padding: 0 15px; box-sizing: border-box; }
+        
+        h1, h2 { color: #2c3e50; }
+        .hidden { display: none !important; }
+
+        /* Tarjetas de Analítica */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: var(--white); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: center; border-bottom: 4px solid var(--primary); }
+        .stat-card h3 { margin: 0; font-size: 0.9rem; color: #666; text-transform: uppercase; }
+        .stat-card .value { font-size: 2rem; font-weight: bold; color: var(--primary); margin: 10px 0; }
+        .stat-card.revenue { border-color: var(--success); }
+        .stat-card.revenue .value { color: var(--success); }
+        .stat-card.conversion { border-color: var(--warning); }
+
+        /* Estilos Tablas y Botones (Existentes) */
+        .table-container { width: 100%; overflow-x: auto; background: white; margin-bottom: 30px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-radius: 8px; }
+        table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        th, td { border: 1px solid #eee; padding: 12px; text-align: left; }
+        th { background-color: var(--primary); color: white; font-size: 0.9rem; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        
+        .btn { padding: 10px 16px; cursor: pointer; background: var(--primary); color: white; border: none; border-radius: 6px; font-weight: 600; text-decoration: none; display: inline-block; text-align: center; font-size: 0.9rem; transition: opacity 0.2s; }
+        .btn-ws { background: #25D366; }
+        .btn-reset { background: var(--danger); width: 100%; max-width: 300px; }
+        .btn-call { background: var(--warning); font-size: 1.1rem; padding: 15px 25px; width: 100%; max-width: 400px; margin: 10px 0; }
+        
+        .game-controls { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 30px; text-align: center; }
+        
+        @media (max-width: 600px) {
+            .admin-nav { gap: 10px; padding: 10px; }
+            .nav-item { font-size: 0.85rem; padding: 5px 10px; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="admin-nav">
+        <div class="nav-item active" onclick="switchTab('game')">🎮 Gestión de Juego</div>
+        <div class="nav-item" onclick="switchTab('analytics')">📊 Analítica de Negocio</div>
+    </nav>
+
+    <div class="container">
+        <!-- VISTA 1: GESTIÓN DE JUEGO -->
+        <section id="view-game">
+            <h1>🎟️ Control de Partida</h1>
+            
+            <div class="game-controls">
+                <div id="winnerDisplay" style="display: none; background: #fff3cd; border: 2px solid #f39c12; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                    <h2 style="color: #d35400; margin: 0;">🏆 ¡BINGO DETECTADO!</h2>
+                    <p style="font-size: 1.2rem; font-weight: bold; margin: 10px 0 0 0;">Ganador: <span id="winnerPhone" style="color: #4a3aff">--</span></p>
+                </div>
+                
+                <h2>👥 Jugadores Online: <span id="playerCount" style="color: var(--primary)">0</span></h2>
+                <div id="playerList" style="margin-bottom: 20px; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;">
+                    <em style="color: #999">Esperando jugadores...</em>
+                </div>
+                
+                <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+                
+                <h2>🕹️ Control del Sorteo</h2>
+                <div style="margin-bottom: 15px;">
+                    <span style="font-size: 1.1rem;">Último número: </span>
+                    <strong id="lastNumber" style="font-size: 2.5rem; color: var(--warning)">--</strong>
+                </div>
+                <button class="btn btn-call" onclick="callNextNumber()">🔔 CANTAR NÚMERO</button>
+                
+                <div style="margin-top: 10px;">
+                    <button id="enableAudioBtn" class="btn" style="background: #6c757d" onclick="toggleAudio()">🔇 Activar Voz</button>
+                </div>
+
+                <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+                <button class="btn btn-reset" onclick="resetGame()">♻️ REINICIAR PARTIDA</button>
+            </div>
+
+            <h2>⏳ Pedidos Pendientes</h2>
+            <div class="table-container">
+                <table id="pendingTable">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Celular</th>
+                            <th>Nombre (OCR)</th>
+                            <th>Código</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="empty-row"><td colspan="5">Cargando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h2>✅ Últimos Aprobados</h2>
+            <div class="table-container">
+                <table id="approvedTable">
+                    <thead>
+                        <tr>
+                            <th>Celular</th>
+                            <th>Nombre</th>
+                            <th>Código</th>
+                            <th>Link</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="empty-row"><td colspan="5">No hay aprobados en esta sesión</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- VISTA 2: ANALÍTICA DE NEGOCIO -->
+        <section id="view-analytics" class="hidden">
+            <h1>📊 Analítica y Conversión</h1>
+            
+            <div class="stats-grid">
+                <div class="stat-card revenue">
+                    <h3>💰 Ingresos Totales</h3>
+                    <div id="stat-revenue" class="value">S/ 0.00</div>
+                    <p style="font-size: 0.8rem; color: #888;">Ventas reales aprobadas</p>
+                </div>
+                <div class="stat-card">
+                    <h3>🎟️ Ventas Totales</h3>
+                    <div id="stat-sales" class="value">0</div>
+                    <p style="font-size: 0.8rem; color: #888;">Cartillas vendidas</p>
+                </div>
+                <div class="stat-card">
+                    <h3>🎁 Pruebas Gratis</h3>
+                    <div id="stat-trials" class="value">0</div>
+                    <p style="font-size: 0.8rem; color: #888;">Usuarios únicos de prueba</p>
+                </div>
+                <div class="stat-card conversion">
+                    <h3>🔥 Conversión</h3>
+                    <div id="stat-conversion" class="value">0%</div>
+                    <p style="font-size: 0.8rem; color: #888;">De Prueba a Pago</p>
+                </div>
+            </div>
+
+            <h2>📈 Ventas por Bloque Horario</h2>
+            <div class="table-container">
+                <table id="hourlyTable">
+                    <thead>
+                        <tr>
+                            <th>Hora</th>
+                            <th>Cantidad de Ventas</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="empty-row"><td colspan="2">No hay datos suficientes</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h2>📋 Historial Completo (Últimas 50)</h2>
+            <div class="table-container">
+                <table id="historyTable">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Celular</th>
+                            <th>Nombre</th>
+                            <th>Tipo</th>
+                            <th>Código</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="empty-row"><td colspan="5">Cargando historial...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io({ query: { role: "admin" } });
+        const baseUrl = window.location.origin;
+        let audioEnabled = false;
+
+        // --- MANEJO DE TABS ---
+        function switchTab(tab) {
+            const navItems = document.querySelectorAll('.nav-item');
+            const viewGame = document.getElementById('view-game');
+            const viewAnalytics = document.getElementById('view-analytics');
+
+            navItems.forEach(item => item.classList.remove('active'));
+            
+            if (tab === 'game') {
+                navItems[0].classList.add('active');
+                viewGame.classList.remove('hidden');
+                viewAnalytics.classList.add('hidden');
+            } else {
+                navItems[1].classList.add('active');
+                viewGame.classList.add('hidden');
+                viewAnalytics.classList.remove('hidden');
+                loadAnalytics(); // Cargar datos frescos
+            }
+        }
+
+        // --- CARGA DE DATOS (JUEGO) ---
+        async function loadOrders() {
+            try {
+                const res = await fetch('/api/admin/orders');
+                const data = await res.json();
+                renderPendingTable(data.pending);
+                renderApprovedTable(data.approved);
+            } catch (err) { console.error(err); }
+        }
+
+        // --- CARGA DE ANALÍTICA (NEGOCIO) ---
+        async function loadAnalytics() {
+            try {
+                const [resMetrics, resHistory] = await Promise.all([
+                    fetch('/api/admin/analytics'),
+                    fetch('/api/admin/orders') // Reutilizamos para el historial rápido
+                ]);
+                
+                const metrics = await resMetrics.json();
+                const historyData = await resHistory.json();
+
+                // Actualizar Tarjetas
+                document.getElementById('stat-revenue').innerText = `S/ ${metrics.totalRevenue.toFixed(2)}`;
+                document.getElementById('stat-sales').innerText = metrics.totalSales;
+                document.getElementById('stat-trials').innerText = metrics.totalTrials;
+                
+                const convRate = metrics.totalTrials > 0 ? (metrics.convertedUsers / metrics.totalTrials * 100).toFixed(1) : 0;
+                document.getElementById('stat-conversion').innerText = `${convRate}%`;
+
+                // Renderizar tabla horaria
+                const hourlyTbody = document.querySelector("#hourlyTable tbody");
+                hourlyTbody.innerHTML = metrics.salesByHour.length ? "" : '<tr class="empty-row"><td colspan="2">Sin datos hoy</td></tr>';
+                metrics.salesByHour.forEach(row => {
+                    hourlyTbody.innerHTML += `<tr><td>${row.hour}</td><td>${row.count} ventas</td></tr>`;
+                });
+
+                // Renderizar Historial
+                const historyTbody = document.querySelector("#historyTable tbody");
+                historyTbody.innerHTML = "";
+                const allHistory = historyData.approved;
+                if (allHistory.length === 0) {
+                    historyTbody.innerHTML = '<tr class="empty-row"><td colspan="5">No hay registros aún</td></tr>';
+                } else {
+                    allHistory.forEach(h => {
+                        const dateStr = new Date(h.timestamp).toLocaleString();
+                        historyTbody.innerHTML += `
+                            <tr>
+                                <td>${dateStr}</td>
+                                <td>${h.phone}</td>
+                                <td>${h.playerName}</td>
+                                <td>${h.isTrial ? '🎁 Prueba' : '💰 Pago'}</td>
+                                <td>${h.operationCode}</td>
+                            </tr>
+                        `;
+                    });
+                }
+
+            } catch (err) { console.error("Error cargando analítica:", err); }
+        }
+
+        // --- LÓGICA DE TABLAS DE JUEGO (REUTILIZADA DEL ANTERIOR) ---
+        function renderPendingTable(orders) {
+            const tbody = document.querySelector("#pendingTable tbody");
+            tbody.innerHTML = orders.length ? "" : '<tr class="empty-row"><td colspan="5">No hay pedidos pendientes</td></tr>';
+            orders.sort((a,b) => a.isTrial - b.isTrial).forEach(o => addOrderToPending(o, false));
+        }
+
+        function renderApprovedTable(orders) {
+            const tbody = document.querySelector("#approvedTable tbody");
+            tbody.innerHTML = orders.length ? "" : '<tr class="empty-row"><td colspan="5">No hay aprobados en esta sesión</td></tr>';
+            orders.forEach(o => addOrderToApproved(o, false));
+        }
+
+        function addOrderToPending(o, prepend = true) {
+            const tbody = document.querySelector("#pendingTable tbody");
+            const empty = tbody.querySelector(".empty-row");
+            if (empty) empty.remove();
+            
+            let btnImg = o.isTrial ? '🎁 PRUEBA' : (o.screenshot ? `<a href="${o.screenshot}" target="_blank" class="btn" style="background:var(--secondary)">👁️ Ver</a>` : '(Sin foto)');
+            let actions = o.isTrial ? `<button class="btn" style="background:var(--secondary)" onclick="approve(${o.id}, 1, true)">✅ APROBAR PRUEBA</button>` : 
+                `<button class="btn" onclick="approve(${o.id}, 1)">1 Cart.</button> <button class="btn" style="background:var(--success)" onclick="approve(${o.id}, 2)">2</button>`;
+
+            const tr = document.createElement("tr");
+            tr.id = `row-pending-${o.id}`;
+            if (o.isTrial) tr.style.background = "#f0f0ff";
+            
+            tr.innerHTML = `
+                <td>${new Date(o.timestamp).toLocaleTimeString()}</td>
+                <td>${o.phone}</td>
+                <td><input type="text" id="name-${o.id}" value="${o.playerName || ''}" style="width:100px;padding:5px;"></td>
+                <td><input type="text" id="code-${o.id}" value="${o.operationCode || ''}" style="width:100px;padding:5px;"></td>
+                <td><div style="margin-bottom:5px">${btnImg}</div>${actions}</td>
+            `;
+            if (prepend) tbody.prepend(tr); else tbody.appendChild(tr);
+        }
+
+        function addOrderToApproved(o, prepend = true) {
+            const tbody = document.querySelector("#approvedTable tbody");
+            const empty = tbody.querySelector(".empty-row");
+            if (empty) empty.remove();
+
+            const playUrl = `${baseUrl}/jugar?t=${o.token}`;
+            const wsUrl = `https://api.whatsapp.com/send?phone=51${o.phone}&text=${encodeURIComponent('¡Hola! Tu pago ha sido verificado: ' + playUrl)}`;
+
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${o.phone} ${o.isTrial ? '🎁' : ''}</td>
+                <td>${o.playerName || 'Jugador'}</td>
+                <td>${o.operationCode || 'N/A'}</td>
+                <td><code style="font-size:0.7rem">${o.token}</code></td>
+                <td>
+                    <div style="display:flex;gap:5px">
+                        <a href="${wsUrl}" target="_blank" class="btn btn-ws">💬</a>
+                        <button onclick="copyToClipboard('${playUrl}')" class="btn" style="background:#636e72">📋</button>
+                    </div>
+                </td>
+            `;
+            if (prepend) tbody.prepend(tr); else tbody.appendChild(tr);
+        }
+
+        // --- ACCIONES Y SOCKETS ---
+        async function approve(id, qty, isTrial) {
+            if(!confirm("¿Aprobar pedido?")) return;
+            const playerName = document.getElementById(`name-${id}`).value;
+            const operationCode = document.getElementById(`code-${id}`).value;
+            await fetch("/api/approve-order", { 
+                method: "POST", headers: {"Content-Type": "application/json"}, 
+                body: JSON.stringify({id, quantity: qty, isTrial, playerName, operationCode})
+            });
+        }
+
+        function copyToClipboard(t) { navigator.clipboard.writeText(t).then(() => alert("Copiado")); }
+        function callNextNumber() { socket.emit("admin:call_number"); }
+        function resetGame() { if(confirm("¿Reiniciar todo?")) socket.emit("admin:reset_game"); }
+        function toggleAudio() { audioEnabled = !audioEnabled; document.getElementById("enableAudioBtn").innerText = audioEnabled ? "🔊 Voz Activada" : "🔇 Activar Voz"; }
+        
+        socket.on("bingo:new_number", (n) => { document.getElementById("lastNumber").innerText = n; });
+        socket.on("admin:all_cleared", () => {
+            // Limpiar UI al reiniciar partida
+            document.getElementById("lastNumber").innerText = "--";
+            document.getElementById("playerCount").innerText = "0";
+            document.getElementById("playerList").innerHTML = '<em style="color: #999">Esperando jugadores...</em>';
+            document.getElementById("winnerDisplay").style.display = "none";
+            
+            // Recargar datos desde el servidor para sincronizar tablas vacías
+            loadOrders();
+            if (!document.getElementById('view-analytics').classList.contains('hidden')) {
+                loadAnalytics();
+            }
+            console.log("[ADMIN] Todo ha sido limpiado y sincronizado.");
+        });
+        socket.on("admin:player_list", (players) => {
+            document.getElementById("playerCount").innerText = players.length;
+            const list = document.getElementById("playerList"); list.innerHTML = "";
+            players.forEach(p => { 
+                list.innerHTML += `<span style="background:#e9f5ff;padding:5px 10px;border-radius:20px;border:1px solid var(--primary);color:var(--primary);font-weight:bold;">📱 ${p.phone}</span>`;
+            });
+        });
+        socket.on("admin:new_order", (o) => addOrderToPending(o, true));
+        socket.on("admin:order_approved", (d) => {
+            const row = document.getElementById(`row-pending-${d.id}`);
+            if (row) row.remove();
+            addOrderToApproved(d, true);
+        });
+
+        document.addEventListener('DOMContentLoaded', loadOrders);
+    </script>
+</body>
+</html>
