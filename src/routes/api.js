@@ -19,6 +19,12 @@ if (process.env.GOOGLE_APPLICATION_CREDENTIALS && fs.existsSync(process.env.GOOG
 const visionClient = new vision.ImageAnnotatorClient(visionOptions);
 
 module.exports = (io) => {
+  // API: Consultar si el modo prueba está habilitado globalmente (Público)
+  router.get('/trial-status', (req, res) => {
+    const bingoService = require('../services/bingoService');
+    res.json({ enabled: bingoService.trialEnabled });
+  });
+
   // API: Verificar si un número puede usar la prueba gratis
   router.get('/check-trial/:phone', async (req, res) => {
     try {
@@ -300,6 +306,12 @@ module.exports = (io) => {
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
+  });
+
+  // API: Obtener estado actual del juego (Solo Admin)
+  router.get('/admin/game-state', basicAuth, (req, res) => {
+    const bingoService = require('../services/bingoService');
+    res.json(bingoService.getState());
   });
 
   return router;

@@ -116,20 +116,10 @@
 
         function welcomePlayer(name) {
             if (hasWelcomed) return;
-            if ('speechSynthesis' in window) {
-                // Mensaje más natural
-                const text = `¡Hola ${name}! Qué bueno tenerte aquí. Mucha suerte en tu partida de hoy.`;
-                const utterance = new SpeechSynthesisUtterance(text);
-                if (selectedVoice) utterance.voice = selectedVoice;
-                utterance.lang = 'es-PE';
-                utterance.rate = 0.95;
-                utterance.pitch = 1;
-                window.speechSynthesis.speak(utterance);
-                hasWelcomed = true;
-
-                // ACTIVACIÓN AUTOMÁTICA DE SONIDO
-                audioEnabled = true;
-            }
+            // ACTIVACIÓN AUTOMÁTICA DE SONIDO (Sin mensaje de voz)
+            audioEnabled = true;
+            hasWelcomed = true;
+            console.log("Audio habilitado para el jugador:", name);
         }
 
         socket.on('bingo:player_info', (data) => {
@@ -160,6 +150,9 @@
 
         function speak(number) {
             if (audioEnabled && 'speechSynthesis' in window) {
+                // LIMPIEZA: Cancelar cualquier audio previo para evitar retrasos
+                window.speechSynthesis.cancel();
+
                 const letter = getBingoLetter(number);
                 const text = `${letter}, ${number}`;
                 const utterance = new SpeechSynthesisUtterance(text);
@@ -171,13 +164,17 @@
         }
 
         function speakCustom(text) {
+            // MODO MINIMALISTA: Desactivado por ahora
+            /*
             if (audioEnabled && 'speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(text);
                 if (selectedVoice) utterance.voice = selectedVoice;
                 utterance.lang = 'es-PE';
                 utterance.rate = 0.95;
                 window.speechSynthesis.speak(utterance);
             }
+            */
         }
 
         function launchVictoryConfetti() {
@@ -237,25 +234,31 @@
 
         socket.on('bingo:winner', (data) => {
             gameEnded = true;
-            const winnerId = typeof data === 'object' ? data.id : data;
-            const winnerPhone = typeof data === 'object' ? data.phone : data;
+            
+            // Soporte para múltiples ganadores
+            const winners = data.allWinners || [data];
+            const winnerIds = winners.map(w => w.id);
+            const isMe = winnerIds.includes(socket.id);
 
-            const isMe = socket.id === winnerId;
             currentNumberSpan.textContent = isMe ? '¡GANASTE!' : '¡BINGO!';
             
             if (isMe) {
                 launchVictoryConfetti();
-                // AUDIO TRIUNFAL REAL
                 speakCustom(`¡Felicidades ${playerName}! Has cantado Bingo y eres el ganador del pozo. ¡Increíble victoria!`);
                 
-                // Evento GTM: Ganador Real
                 window.dataLayer = window.dataLayer || [];
                 window.dataLayer.push({
                     'event': 'bingo_win',
                     'player_name': playerName
                 });
 
-                gameOverMessage.innerHTML = '🎉 <strong>¡FELICIDADES!</strong> 🎉<br>Has completado tu cartilla y ganado el <strong>BINGO REAL</strong>.<br>Nos pondremos en contacto contigo para tu premio.';
+                let msg = '🎉 <strong>¡FELICIDADES!</strong> 🎉<br>Has completado tu cartilla y ganado el <strong>BINGO REAL</strong>.<br>';
+                if (winners.length > 1) {
+                    msg += `<small>(Hubo ${winners.length} ganadores simultáneos)</small><br>`;
+                }
+                msg += 'Nos pondremos en contacto contigo para tu premio.';
+
+                gameOverMessage.innerHTML = msg;
                 gameOverMessage.style.color = '#155724';
                 gameOverMessage.style.background = '#d4edda';
                 gameOverMessage.style.padding = '20px';
@@ -263,7 +266,8 @@
                 gameOverMessage.style.border = '3px solid #28a745';
                 gameOverMessage.style.fontSize = '1.2rem';
             } else {
-                gameOverMessage.textContent = `El jugador con celular ${winnerPhone} ha ganado el BINGO.`;
+                const phones = winners.map(w => w.phone).join(', ');
+                gameOverMessage.textContent = `Los jugadores con celular ${phones} han ganado el BINGO.`;
                 gameOverMessage.style.color = '#dc3545';
                 gameOverMessage.style.background = 'none';
                 gameOverMessage.style.border = 'none';
@@ -296,15 +300,6 @@
                 gameOverMessage.style.borderRadius = '10px';
                 gameOverMessage.style.border = '2px solid #6c5ce7';
                 gameOverMessage.classList.remove('hidden');
-
-                // AUDIO MOTIVADOR: Intentar enganchar al usuario con voz
-                if ('speechSynthesis' in window) {
-                    const msg = new SpeechSynthesisUtterance("¡Increíble victoria! Has demostrado tener mucha suerte. Ahora, prueba tu suerte de verdad y gana premios reales en efectivo. Te estamos redirigiendo para que obtengas tu cartilla oficial.");
-                    if (selectedVoice) msg.voice = selectedVoice;
-                    msg.lang = 'es-PE';
-                    msg.rate = 0.95;
-                    window.speechSynthesis.speak(msg);
-                }
 
                 // Lógica de redirección automática para romper el bucle
                 let timeLeft = 10;

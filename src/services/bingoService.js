@@ -11,6 +11,8 @@ class BingoService {
     this.userCards = new Map(); // socketId -> { cards: [{card, marked}], phone, isTrial }
     this.gameActive = true;
     this.winner = null;
+    this.winners = []; // Para soportar múltiples ganadores simultáneos
+    this.trialEnabled = true; // Control global del modo prueba
   }
 
   /**
@@ -48,6 +50,17 @@ class BingoService {
     const newCard = this.generateBingoCard();
     const initialMarked = Array.from({ length: 5 }, () => Array(5).fill(false));
     initialMarked[2][2] = true;
+
+    // SINCRONIZACIÓN: Si ya hay números cantados, marcarlos en la nueva cartilla
+    if (this.calledNumbers.length > 0) {
+      for (let r = 0; r < 5; r++) {
+        for (let c = 0; c < 5; c++) {
+          if (this.calledNumbers.includes(newCard[r][c])) {
+            initialMarked[r][c] = true;
+          }
+        }
+      }
+    }
     
     const cardData = { card: newCard, marked: initialMarked };
     
@@ -77,12 +90,12 @@ class BingoService {
    * @returns {Object|null} El número sacado y el ID del ganador (si existe), o null si el juego no permite más números.
    */
   callNewNumber() {
-    if (!this.gameActive || this.availableNumbers.length === 0 || this.winner) return null;
+    if (!this.gameActive || this.availableNumbers.length === 0 || this.winners.length > 0) return null;
     const randomIndex = Math.floor(Math.random() * this.availableNumbers.length);
     const newNumber = this.availableNumbers.splice(randomIndex, 1)[0];
     this.calledNumbers.push(newNumber);
 
-    let trialWinner = null;
+    let trialWinners = [];
 
     // Actualizar marcas
     this.userCards.forEach((userData, userId) => {
@@ -95,16 +108,29 @@ class BingoService {
         }
         if (this.checkBingo(cardSet, userId)) {
           if (!userData.isTrial) {
+            // Juego Real: Detener el juego si hay al menos un ganador real
             this.gameActive = false;
-            this.winner = { id: userId, phone: userData.phone };
+            // Evitar duplicar el mismo usuario si gana con varias cartillas
+            if (!this.winners.find(w => w.id === userId)) {
+              this.winners.push({ id: userId, phone: userData.phone });
+            }
           } else {
-            trialWinner = { id: userId, phone: userData.phone, isTrial: true };
+            trialWinners.push({ id: userId, phone: userData.phone, isTrial: true });
           }
         }
       });
     });
 
-    return { number: newNumber, winner: this.winner, trialWinner };
+    // Retrocompatibilidad con la propiedad 'winner' (para el primer ganador)
+    this.winner = this.winners.length > 0 ? this.winners[0] : null;
+
+    return { 
+      number: newNumber, 
+      winner: this.winner, 
+      winners: this.winners, 
+      trialWinner: trialWinners.length > 0 ? trialWinners[0] : null,
+      trialWinners
+    };
   }
 
   /**
@@ -153,6 +179,7 @@ class BingoService {
     this.availableNumbers = [...this.bingoNumbers];
     this.gameActive = true;
     this.winner = null;
+    this.winners = [];
 
     if (clearPlayers) {
       this.userCards.clear();
@@ -169,11 +196,58 @@ class BingoService {
     console.log(`[BINGO] Juego reiniciado. Jugadores activos: ${this.userCards.size}`);
   }
 
+  /**
+   * Limpia las marcas de demo de todos los usuarios de prueba.
+   * Se llama al iniciar el juego real.
+   */
+  resetTrialCards() {
+    this.userCards.forEach(userData => {
+      if (userData.isTrial) {
+        userData.cards.forEach(cardSet => {
+          // Resetear a limpio (solo FREE)
+          cardSet.marked = Array.from({ length: 5 }, () => Array(5).fill(false));
+          cardSet.marked[2][2] = true;
+          // Si ya hay números en el juego real actual, sincronizar
+          this.calledNumbers.forEach(num => {
+             for (let r = 0; r < 5; r++) {
+               for (let c = 0; c < 5; c++) {
+                 if (cardSet.card[r][c] === num) cardSet.marked[r][c] = true;
+               }
+             }
+          });
+        });
+      }
+    });
+    console.log('[BINGO] Cartillas de prueba reiniciadas para sincronizar con juego real.');
+  }
+
+  setTrialEnabled(enabled) {
+    this.trialEnabled = enabled;
+    if (!enabled) {
+      // Si se desactiva, opcionalmente podrías querer limpiar los usuarios trial existentes
+      // Por ahora solo los marcamos para que no puedan usar autoplay
+    }
+    console.log(`[BINGO] Modo prueba ${enabled ? 'HABILITADO' : 'DESHABILITADO'}`);
+  }
+
+  /**
+   * Crea usuarios virtuales (bots) para pruebas de carga.
+   */
+  addBots(count) {
+    for (let i = 0; i < count; i++) {
+      const botId = `bot-${Math.random().toString(36).substring(2, 7)}`;
+      this.addUser(botId, `BOT-${i+1}`, true);
+    }
+    console.log(`[BINGO] ${count} bots añadidos al juego.`);
+  }
+
   getState() {
     return {
       calledNumbers: this.calledNumbers,
       gameActive: this.gameActive,
-      winner: this.winner
+      winner: this.winner,
+      winners: this.winners,
+      trialEnabled: this.trialEnabled
     };
   }
 

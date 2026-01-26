@@ -52,6 +52,13 @@
         
         .game-controls { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 30px; text-align: center; }
         
+        /* Zona de Fuego */
+        .fire-zone { background: #fff5f5; border: 2px dashed #ff7675; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+        .fire-list { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 10px; }
+        .fire-badge { background: #ff7675; color: white; padding: 5px 12px; border-radius: 15px; font-weight: bold; font-size: 0.9rem; }
+        .fire-badge.missing-1 { background: #d63031; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+
         @media (max-width: 600px) {
             .admin-nav { gap: 10px; padding: 10px; }
             .nav-item { font-size: 0.85rem; padding: 5px 10px; }
@@ -72,7 +79,12 @@
             <div class="game-controls">
                 <div id="winnerDisplay" style="display: none; background: #fff3cd; border: 2px solid #f39c12; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
                     <h2 style="color: #d35400; margin: 0;">🏆 ¡BINGO DETECTADO!</h2>
-                    <p style="font-size: 1.2rem; font-weight: bold; margin: 10px 0 0 0;">Ganador: <span id="winnerPhone" style="color: #4a3aff">--</span></p>
+                    <p id="winnerSummary" style="font-size: 1.2rem; font-weight: bold; margin: 10px 0 0 0;">Ganador: <span id="winnerPhone" style="color: #4a3aff">--</span></p>
+                </div>
+
+                <div id="fireZone" class="fire-zone hidden">
+                    <h3 style="color: #d63031; margin: 0;">🔥 ZONA DE FUEGO (Falta poco)</h3>
+                    <div id="fireList" class="fire-list"></div>
                 </div>
                 
                 <h2>👥 Jugadores Online: <span id="playerCount" style="color: var(--primary)">0</span></h2>
@@ -89,8 +101,10 @@
                 </div>
                 <button class="btn btn-call" onclick="callNextNumber()">🔔 CANTAR NÚMERO</button>
                 
-                <div style="margin-top: 10px;">
+                <div style="margin-top: 10px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
                     <button id="enableAudioBtn" class="btn" style="background: #6c757d" onclick="toggleAudio()">🔇 Activar Voz</button>
+                    <button id="toggleTrialBtn" class="btn" style="background: #6c5ce7" onclick="toggleTrialMode()">⚙️ Cargando Trial...</button>
+                    <button class="btn" style="background: #00cec9" onclick="spawnBots()">🤖 Simular 20 Jugadores</button>
                 </div>
 
                 <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
@@ -201,6 +215,41 @@
         const socket = io({ query: { role: "admin" } });
         const baseUrl = window.location.origin;
         let audioEnabled = false;
+        let trialEnabled = true;
+        let selectedVoice = null;
+
+        // SELECCIÓN DE VOZ
+        function loadVoices() {
+            const voices = window.speechSynthesis.getVoices();
+            selectedVoice = voices.find(v => v.name.includes('Google') && v.lang.startsWith('es')) ||
+                            voices.find(v => v.lang === 'es-PE') ||
+                            voices.find(v => v.lang.startsWith('es'));
+        }
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.onvoiceschanged = loadVoices;
+            loadVoices();
+        }
+
+        function getBingoLetter(num) {
+            if (num <= 15) return 'B';
+            if (num <= 30) return 'I';
+            if (num <= 45) return 'N';
+            if (num <= 60) return 'G';
+            return 'O';
+        }
+
+        function speak(number) {
+            if (audioEnabled && 'speechSynthesis' in window) {
+                window.speechSynthesis.cancel(); // Evitar lag
+                const letter = getBingoLetter(number);
+                const text = `${letter}, ${number}`;
+                const utterance = new SpeechSynthesisUtterance(text);
+                if (selectedVoice) utterance.voice = selectedVoice;
+                utterance.lang = 'es-PE';
+                utterance.rate = 0.9;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
 
         // --- MANEJO DE TABS ---
         function switchTab(tab) {
@@ -354,18 +403,117 @@
         }
 
         function copyToClipboard(t) { navigator.clipboard.writeText(t).then(() => alert("Copiado")); }
-        function callNextNumber() { socket.emit("admin:call_number"); }
+        
+        function callNextNumber() { 
+            const btn = document.querySelector(".btn-call");
+            if (btn.disabled) return;
+
+            // BLOQUEO TEMPORAL (Throttle) para evitar doble clic
+            btn.disabled = true;
+            setTimeout(() => { 
+                if (!document.getElementById("winnerDisplay").style.display || document.getElementById("winnerDisplay").style.display === "none") {
+                    btn.disabled = false;
+                }
+            }, 800);
+
+            socket.emit("admin:call_number"); 
+        }
+
         function resetGame() { if(confirm("¿Reiniciar todo?")) socket.emit("admin:reset_game"); }
         function toggleAudio() { audioEnabled = !audioEnabled; document.getElementById("enableAudioBtn").innerText = audioEnabled ? "🔊 Voz Activada" : "🔇 Activar Voz"; }
         
-        socket.on("bingo:new_number", (n) => { document.getElementById("lastNumber").innerText = n; });
+        async function fetchGameState() {
+            try {
+                const res = await fetch('/api/admin/game-state');
+                const state = await res.json();
+                trialEnabled = state.trialEnabled;
+                updateTrialBtn();
+            } catch (err) { console.error(err); }
+        }
+
+        function updateTrialBtn() {
+            const btn = document.getElementById("toggleTrialBtn");
+            if (trialEnabled) {
+                btn.innerText = "✅ Modo Prueba Activo";
+                btn.style.background = "#6c5ce7";
+            } else {
+                btn.innerText = "🚫 Modo Prueba Desactivado";
+                btn.style.background = "#b2bec3";
+            }
+        }
+
+        function toggleTrialMode() {
+            trialEnabled = !trialEnabled;
+            socket.emit("admin:toggle_trial", trialEnabled);
+            updateTrialBtn();
+        }
+
+        function spawnBots() {
+            if (confirm("¿Simular 20 jugadores virtuales para pruebas?")) {
+                socket.emit("admin:spawn_bots", 20);
+            }
+        }
+
+        socket.on("admin:trial_status", (enabled) => {
+            trialEnabled = enabled;
+            updateTrialBtn();
+        });
+
+        socket.on("bingo:new_number", (n) => { 
+            document.getElementById("lastNumber").innerText = n; 
+            speak(n); // AUDIO EN ADMIN
+        });
+
+        socket.on("bingo:winner", (data) => {
+            const winners = data.allWinners || [data];
+            const phones = winners.map(w => w.phone).join(', ');
+            
+            document.getElementById("winnerDisplay").style.display = "block";
+            document.getElementById("winnerPhone").innerText = phones;
+            
+            // BLOQUEO DE SEGURIDAD: Desactivar botón de cantar
+            const btnCall = document.querySelector(".btn-call");
+            btnCall.disabled = true;
+            btnCall.style.opacity = "0.5";
+            btnCall.style.cursor = "not-allowed";
+            btnCall.innerText = "🚫 BINGO CANTADO";
+        });
+
+        socket.on("bingo:approaching", (list) => {
+            const fireZone = document.getElementById("fireZone");
+            const fireList = document.getElementById("fireList");
+            
+            if (list.length === 0) {
+                fireZone.classList.add("hidden");
+                return;
+            }
+
+            fireZone.classList.remove("hidden");
+            fireList.innerHTML = "";
+            list.forEach(p => {
+                const badge = document.createElement("span");
+                badge.className = `fire-badge missing-${p.missing}`;
+                const trialTag = p.isTrial ? ' (P)' : '';
+                badge.innerText = `${p.phone}${trialTag}: Falta ${p.missing}`;
+                fireList.appendChild(badge);
+            });
+        });
+
         socket.on("admin:all_cleared", () => {
             // Limpiar UI al reiniciar partida
             document.getElementById("lastNumber").innerText = "--";
             document.getElementById("playerCount").innerText = "0";
             document.getElementById("playerList").innerHTML = '<em style="color: #999">Esperando jugadores...</em>';
             document.getElementById("winnerDisplay").style.display = "none";
+            document.getElementById("fireZone").classList.add("hidden");
             
+            // RE-ACTIVAR BOTÓN
+            const btnCall = document.querySelector(".btn-call");
+            btnCall.disabled = false;
+            btnCall.style.opacity = "1";
+            btnCall.style.cursor = "pointer";
+            btnCall.innerText = "🔔 CANTAR NÚMERO";
+
             // Recargar datos desde el servidor para sincronizar tablas vacías
             loadOrders();
             if (!document.getElementById('view-analytics').classList.contains('hidden')) {
@@ -387,7 +535,10 @@
             addOrderToApproved(d, true);
         });
 
-        document.addEventListener('DOMContentLoaded', loadOrders);
+        document.addEventListener('DOMContentLoaded', () => {
+            loadOrders();
+            fetchGameState();
+        });
     </script>
 </body>
 </html>

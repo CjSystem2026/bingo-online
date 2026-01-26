@@ -216,6 +216,33 @@
         setInterval(updateCountdown, 1000);
         updateCountdown();
 
+        // Sincronizar Disponibilidad de Modo Prueba
+        let globalTrialEnabled = true;
+        async function checkGlobalTrialStatus() {
+            try {
+                const res = await fetch('/api/trial-status');
+                const data = await res.json();
+                globalTrialEnabled = data.enabled;
+                
+                if (!globalTrialEnabled) {
+                    // Ocultar rastro de modo prueba
+                    if (btnTrial) btnTrial.style.display = 'none';
+                    if (topTrialBanner) topTrialBanner.style.display = 'none';
+                    if (isTrialMode) btnBackToNormal.click();
+                } else if (!localStorage.getItem('bingo_trial_used')) {
+                    // Solo mostrar si no se ha usado en este navegador
+                    if (!isTrialMode) {
+                        if (btnTrial) btnTrial.style.display = 'block';
+                        if (topTrialBanner) topTrialBanner.style.display = 'block';
+                    }
+                }
+            } catch (err) { console.error("Error sincronizando modo prueba:", err); }
+        }
+        
+        // Ejecutar al cargar y cada 30 segundos para mantener sincronía
+        checkGlobalTrialStatus();
+        setInterval(checkGlobalTrialStatus, 30000);
+
         // Lógica del Video Tutorial
         const video = document.getElementById('tutorialVideo');
         const videoContainer = document.getElementById('videoContainer');
@@ -322,7 +349,9 @@
                 try {
                     const resp = await fetch(`/api/check-trial/${phone}`);
                     const data = await resp.json();
-                    if (!data.canUseTrial) {
+                    
+                    // Solo mostrar si puede usarlo Y está habilitado globalmente
+                    if (!data.canUseTrial || !globalTrialEnabled) {
                         if (isTrialMode) btnBackToNormal.click();
                         btnTrial.style.display = 'none';
                         if (topTrialBanner) topTrialBanner.style.display = 'none';

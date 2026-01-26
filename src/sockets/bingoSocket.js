@@ -75,7 +75,8 @@ module.exports = (io) => {
       emitBingoStats(io); // Sincronizar estadísticas con todos
 
       // Iniciar Autoplay si es usuario de prueba y no hay juego activo
-      if (isTrialUser && gameState.gameActive && !gameState.winner && gameState.calledNumbers.length === 0) {
+      // VALIDACIÓN: Solo si el modo trial está habilitado globalmente
+      if (isTrialUser && bingoService.trialEnabled && gameState.gameActive && !gameState.winner && gameState.calledNumbers.length === 0) {
         startTrialAutoPlay(socket, io, userData);
       }
     }
@@ -95,6 +96,24 @@ module.exports = (io) => {
     // Escuchar tanto de admin como de jugador
     socket.on('bingo:call_number', () => handleCallNumber(io));
     socket.on('admin:call_number', () => handleCallNumber(io));
+
+    // Eventos de control de Trial y Bots
+    socket.on('admin:toggle_trial', (enabled) => {
+      if (isAdmin) {
+        bingoService.setTrialEnabled(enabled);
+        if (!enabled) {
+          stopAllTrialAutoplays();
+        }
+        io.emit('admin:trial_status', enabled);
+      }
+    });
+
+    socket.on('admin:spawn_bots', (count) => {
+      if (isAdmin) {
+        bingoService.addBots(count || 20);
+        io.emit('admin:player_list', bingoService.getPlayers());
+      }
+    });
 
     socket.on('admin:reset_game', async () => {
       // Limpieza TOTAL de jugadores, pedidos e historial de imágenes
@@ -136,8 +155,14 @@ module.exports = (io) => {
 };
 
 function handleCallNumber(io) {
-  // Al cantar un número real, detenemos todos los autoplays de demo
-  stopAllTrialAutoplays();
+  const state = bingoService.getState();
+  
+  // Si es el PRIMER número del juego real, limpiar las marcas de los trials
+  if (state.calledNumbers.length === 0) {
+    bingoService.resetTrialCards();
+    // También detenemos los autoplays si aún hay alguno
+    stopAllTrialAutoplays();
+  }
 
   const result = bingoService.callNewNumber();
   if (result) {
@@ -154,11 +179,19 @@ function handleCallNumber(io) {
     }));
     io.emit('bingo:approaching', maskedApproaching);
 
-    if (result.winner) {
-      io.emit('bingo:winner', result.winner);
-    } else if (result.trialWinner) {
-      // Notificar al ganador de prueba (esto no detiene el juego real)
-      io.emit('bingo:trial_winner', result.trialWinner);
+    if (result.winners && result.winners.length > 0) {
+      // Soporte multi-ganador: enviamos el array completo
+      io.emit('bingo:winner', { 
+        id: result.winners[0].id, 
+        phone: result.winners[0].phone,
+        allWinners: result.winners 
+      });
+    } else if (result.trialWinners && result.trialWinners.length > 0) {
+      // Notificar a los ganadores de prueba de forma privada (opcionalmente)
+      // O al menos asegurarnos de que el payload sea correcto
+      result.trialWinners.forEach(tw => {
+        io.to(tw.id).emit('bingo:trial_winner', tw);
+      });
     }
   } else {
     const state = bingoService.getState();
