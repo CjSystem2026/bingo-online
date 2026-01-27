@@ -12,4 +12,9 @@ function escapeHTML(str) {
     .replace(/'/g, '\x26#039;');
 }
 
-module.exports = { escapeHTML };
+function sanitizeInput(str) {
+  if (typeof str !== 'string') return '';
+  return escapeHTML(str.trim());
+}
+
+module.exports = { escapeHTML, sanitizeInput };
