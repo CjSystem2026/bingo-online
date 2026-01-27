@@ -8,7 +8,8 @@ class BingoService {
     this.bingoNumbers = Array.from({ length: 75 }, (_, i) => i + 1);
     this.calledNumbers = [];
     this.availableNumbers = [...this.bingoNumbers];
-    this.userCards = new Map(); // socketId -> { cards: [{card, marked}], phone, isTrial }
+    this.userCards = new Map(); // phone -> { cards: [{card, marked}], phone, isTrial, sockets: Set }
+    this.socketToPhone = new Map(); // socketId -> phone (para desconexiones)
     this.gameActive = true;
     this.winner = null;
     this.winners = []; // Para soportar múltiples ganadores simultáneos
@@ -40,49 +41,65 @@ class BingoService {
   }
 
   /**
-   * Registra un nuevo jugador o añade una cartilla a uno existente.
+   * Asegura que un jugador tenga sus cartillas asignadas de forma persistente.
+   * Si el jugador ya existe (por teléfono), se le vincula el nuevo socketId.
    * @param {string} socketId - Identificador único de la conexión.
-   * @param {string|null} phone - Número de teléfono del jugador (opcional).
+   * @param {string} phone - Número de teléfono del jugador.
    * @param {boolean} isTrial - Indica si es un usuario de prueba.
-   * @returns {Object} La lista completa de cartillas del usuario.
+   * @param {number} requiredCards - Cantidad de cartillas que debe tener.
+   * @returns {Object} Los datos del usuario (sesión persistente).
    */
-  addUser(socketId, phone = null, isTrial = false) {
-    const newCard = this.generateBingoCard();
-    const initialMarked = Array.from({ length: 5 }, () => Array(5).fill(false));
-    initialMarked[2][2] = true;
+  ensureUser(socketId, phone, isTrial = false, requiredCards = 1) {
+    let userData = this.userCards.get(phone);
 
-    // SINCRONIZACIÓN: Si ya hay números cantados, marcarlos en la nueva cartilla
-    if (this.calledNumbers.length > 0) {
-      for (let r = 0; r < 5; r++) {
-        for (let c = 0; c < 5; c++) {
-          if (this.calledNumbers.includes(newCard[r][c])) {
-            initialMarked[r][c] = true;
+    if (!userData) {
+      // Primera vez que entra este teléfono en esta partida
+      userData = {
+        cards: [],
+        phone: phone,
+        isTrial: isTrial,
+        sockets: new Set()
+      };
+      this.userCards.set(phone, userData);
+    }
+
+    // Vincular socket actual
+    userData.sockets.add(socketId);
+    this.socketToPhone.set(socketId, phone);
+
+    // Generar solo las cartillas faltantes (Idempotencia)
+    while (userData.cards.length < requiredCards) {
+      const newCard = this.generateBingoCard();
+      const initialMarked = Array.from({ length: 5 }, () => Array(5).fill(false));
+      initialMarked[2][2] = true;
+
+      // Sincronizar con números ya cantados
+      if (this.calledNumbers.length > 0) {
+        for (let r = 0; r < 5; r++) {
+          for (let c = 0; c < 5; c++) {
+            if (this.calledNumbers.includes(newCard[r][c])) {
+              initialMarked[r][c] = true;
+            }
           }
         }
       }
+      userData.cards.push({ card: newCard, marked: initialMarked });
+      console.log(`[BINGO] Generada nueva cartilla persistente para ${phone}. Total: ${userData.cards.length}`);
     }
-    
-    const cardData = { card: newCard, marked: initialMarked };
-    
-    let userData = this.userCards.get(socketId);
-    if (!userData) {
-      userData = { 
-        cards: [cardData], 
-        phone: phone || `Anon-${socketId.substring(0, 4)}`,
-        isTrial
-      };
-      this.userCards.set(socketId, userData);
-    } else {
-      userData.cards.push(cardData);
-    }
-    
-    console.log(`[BINGO] Usuario ${socketId} (${userData.phone}) [Trial: ${isTrial}] ahora tiene ${userData.cards.length} cartillas.`);
+
     return userData;
   }
 
   removeUser(socketId) {
-    this.userCards.delete(socketId);
-    console.log(`[BINGO] Usuario desconectado: ${socketId}. Total jugadores: ${this.userCards.size}`);
+    const phone = this.socketToPhone.get(socketId);
+    if (phone) {
+      const userData = this.userCards.get(phone);
+      if (userData) {
+        userData.sockets.delete(socketId);
+        console.log(`[BINGO] Socket ${socketId} desvinculado de ${phone}. Sockets activos: ${userData.sockets.size}`);
+      }
+      this.socketToPhone.delete(socketId);
+    }
   }
 
   /**
@@ -97,8 +114,8 @@ class BingoService {
 
     let trialWinners = [];
 
-    // Actualizar marcas
-    this.userCards.forEach((userData, userId) => {
+    // Actualizar marcas (iteramos sobre el mapa de teléfonos)
+    this.userCards.forEach((userData, phone) => {
       userData.cards.forEach((cardSet) => {
         const { card, marked } = cardSet;
         for (let r = 0; r < 5; r++) {
@@ -106,16 +123,24 @@ class BingoService {
             if (card[r][c] === newNumber) marked[r][c] = true;
           }
         }
-        if (this.checkBingo(cardSet, userId)) {
+        if (this.checkBingo(cardSet, phone)) {
           if (!userData.isTrial) {
             // Juego Real: Detener el juego si hay al menos un ganador real
             this.gameActive = false;
             // Evitar duplicar el mismo usuario si gana con varias cartillas
-            if (!this.winners.find(w => w.id === userId)) {
-              this.winners.push({ id: userId, phone: userData.phone });
+            // Guardamos el objeto ganador. Incluimos todos los sockets para notificar a todas las pestañas.
+            if (!this.winners.find(w => w.phone === phone)) {
+              this.winners.push({ 
+                phone: userData.phone, 
+                sockets: Array.from(userData.sockets) 
+              });
             }
           } else {
-            trialWinners.push({ id: userId, phone: userData.phone, isTrial: true });
+            trialWinners.push({ 
+              phone: userData.phone, 
+              isTrial: true,
+              sockets: Array.from(userData.sockets)
+            });
           }
         }
       });
@@ -183,6 +208,7 @@ class BingoService {
 
     if (clearPlayers) {
       this.userCards.clear();
+      this.socketToPhone.clear();
       console.log('[BINGO] Todos los jugadores han sido eliminados de la memoria.');
     } else {
       this.userCards.forEach(userData => {
@@ -235,8 +261,9 @@ class BingoService {
    */
   addBots(count) {
     for (let i = 0; i < count; i++) {
-      const botId = `bot-${Math.random().toString(36).substring(2, 7)}`;
-      this.addUser(botId, `BOT-${i+1}`, true);
+      const botPhone = `BOT-${i + 1}`;
+      const botSocketId = `bot-socket-${Math.random().toString(36).substring(2, 7)}`;
+      this.ensureUser(botSocketId, botPhone, true, 1);
     }
     console.log(`[BINGO] ${count} bots añadidos al juego.`);
   }
@@ -252,13 +279,20 @@ class BingoService {
   }
 
   /**
-   * Retorna la lista de jugadores actuales.
-   * @returns {Array<Object>} Lista de { id, phone, isTrial }
+   * Retorna la lista de jugadores actuales (que tienen al menos un socket conectado).
+   * @returns {Array<Object>} Lista de { id, phone, isTrial, online }
    */
   getPlayers() {
     const players = [];
-    this.userCards.forEach((data, userId) => {
-      players.push({ id: userId, phone: data.phone, isTrial: data.isTrial });
+    this.userCards.forEach((data, phone) => {
+      // Usamos el primer socket o el phone como ID
+      const refId = data.sockets.size > 0 ? Array.from(data.sockets)[0] : phone;
+      players.push({ 
+        id: refId, 
+        phone: data.phone, 
+        isTrial: data.isTrial,
+        online: data.sockets.size > 0
+      });
     });
     return players;
   }

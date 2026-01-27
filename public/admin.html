@@ -286,11 +286,11 @@
             try {
                 const [resMetrics, resHistory] = await Promise.all([
                     fetch('/api/admin/analytics'),
-                    fetch('/api/admin/orders') // Reutilizamos para el historial rápido
+                    fetch('/api/admin/history') // Cargamos historial real de la base de datos
                 ]);
                 
                 const metrics = await resMetrics.json();
-                const historyData = await resHistory.json();
+                const allHistory = await resHistory.json();
 
                 // Actualizar Tarjetas
                 document.getElementById('stat-revenue').innerText = `S/ ${metrics.totalRevenue.toFixed(2)}`;
@@ -307,21 +307,22 @@
                     hourlyTbody.innerHTML += `<tr><td>${row.hour}</td><td>${row.count} ventas</td></tr>`;
                 });
 
-                // Renderizar Historial
+                // Renderizar Historial (Desde Base de Datos)
                 const historyTbody = document.querySelector("#historyTable tbody");
                 historyTbody.innerHTML = "";
-                const allHistory = historyData.approved;
+                
                 if (allHistory.length === 0) {
                     historyTbody.innerHTML = '<tr class="empty-row"><td colspan="5">No hay registros aún</td></tr>';
                 } else {
                     allHistory.forEach(h => {
                         const dateStr = new Date(h.timestamp).toLocaleString();
+                        const isTrial = h.isTrial === 1 || h.isTrial === true || h.operationCode === 'PRUEBA';
                         historyTbody.innerHTML += `
                             <tr>
                                 <td>${dateStr}</td>
                                 <td>${h.phone}</td>
                                 <td>${h.playerName}</td>
-                                <td>${h.isTrial ? '🎁 Prueba' : '💰 Pago'}</td>
+                                <td>${isTrial ? '🎁 Prueba' : '💰 Pago'}</td>
                                 <td>${h.operationCode}</td>
                             </tr>
                         `;

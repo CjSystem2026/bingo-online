@@ -308,6 +308,17 @@ module.exports = (io) => {
     }
   });
 
+  // API: Obtener historial completo de la base de datos (Solo Admin)
+  router.get('/admin/history', basicAuth, async (req, res) => {
+    try {
+      const { getOrdersHistory } = require('../utils/orderPersistence');
+      const history = await getOrdersHistory();
+      res.json(history);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // API: Obtener estado actual del juego (Solo Admin)
   router.get('/admin/game-state', basicAuth, (req, res) => {
     const bingoService = require('../services/bingoService');

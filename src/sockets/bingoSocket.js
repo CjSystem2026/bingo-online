@@ -47,19 +47,16 @@ module.exports = (io) => {
       userPhone = order.phone;
       const isTrialUser = order.isTrial === true;
       let totalCardsToAssign = 1;
-      
+
       // Buscar cuántas cartillas aprobadas tiene este número en total
       const status = orderService.checkStatus(userPhone);
       if (status.status === 'approved') {
         totalCardsToAssign = status.items.length;
       }
 
-      // Asignar todas las cartillas que le corresponden
-      let userData;
-      for (let i = 0; i < totalCardsToAssign; i++) {
-        userData = bingoService.addUser(socket.id, userPhone, isTrialUser);
-      }
-      
+      // Asignar/Recuperar cartillas de forma persistente (Idempotente)
+      const userData = bingoService.ensureUser(socket.id, userPhone, isTrialUser, totalCardsToAssign);
+
       const gameState = bingoService.getState();
 
       // Notificar a todos los admins el cambio en la lista de jugadores
@@ -187,10 +184,11 @@ function handleCallNumber(io) {
         allWinners: result.winners 
       });
     } else if (result.trialWinners && result.trialWinners.length > 0) {
-      // Notificar a los ganadores de prueba de forma privada (opcionalmente)
-      // O al menos asegurarnos de que el payload sea correcto
+      // Notificar a los ganadores de prueba de forma privada en todos sus sockets abiertos
       result.trialWinners.forEach(tw => {
-        io.to(tw.id).emit('bingo:trial_winner', tw);
+        if (tw.sockets && tw.sockets.length > 0) {
+          tw.sockets.forEach(sId => io.to(sId).emit('bingo:trial_winner', tw));
+        }
       });
     }
   } else {
