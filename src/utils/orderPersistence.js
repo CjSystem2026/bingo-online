@@ -5,41 +5,34 @@ const db = require('../config/database');
  * @param {Object} orderData 
  * @returns {Promise<void>}
  */
-function saveOrderToHistory(orderData) {
-  return new Promise((resolve, reject) => {
-    const { phone, playerName, operationCode, quantity, isTrial } = orderData;
+async function saveOrderToHistory(orderData) {
+  const { phone, playerName, operationCode, quantity, isTrial } = orderData;
+  
+  // 1. Upsert en la tabla 'players'
+  // SQLite usa ON CONFLICT(phone) DO UPDATE, PostgreSQL también (9.5+)
+  const upsertPlayerSql = `
+    INSERT INTO players (phone, name, last_seen) 
+    VALUES (?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(phone) DO UPDATE SET 
+      name = EXCLUDED.name, 
+      last_seen = CURRENT_TIMESTAMP
+  `;
+
+  try {
+    await db.query(upsertPlayerSql, [phone, playerName]);
     
-    // 1. Upsert en la tabla 'players'
-    const upsertPlayerSql = `
-      INSERT INTO players (phone, name, last_seen) 
-      VALUES (?, ?, CURRENT_TIMESTAMP)
-      ON CONFLICT(phone) DO UPDATE SET 
-        name = excluded.name, 
-        last_seen = CURRENT_TIMESTAMP
+    // 2. Insertar en 'orders_history'
+    const insertOrderSql = `
+      INSERT INTO orders_history (phone, playerName, operationCode, quantity, isTrial)
+      VALUES (?, ?, ?, ?, ?)
     `;
 
-    db.run(upsertPlayerSql, [phone, playerName], function(err) {
-      if (err) {
-        console.error('[DB] Error al actualizar jugador:', err.message);
-        return reject(err);
-      }
-
-      // 2. Insertar en 'orders_history'
-      const insertOrderSql = `
-        INSERT INTO orders_history (phone, playerName, operationCode, quantity, isTrial)
-        VALUES (?, ?, ?, ?, ?)
-      `;
-
-      db.run(insertOrderSql, [phone, playerName, operationCode, quantity, isTrial], function(err) {
-        if (err) {
-          console.error('[DB] Error al guardar historial de orden:', err.message);
-          return reject(err);
-        }
-        console.log(`[DB] Orden guardada en historial. ID: ${this.lastID}`);
-        resolve();
-      });
-    });
-  });
+    await db.query(insertOrderSql, [phone, playerName, operationCode, quantity, isTrial]);
+    console.log(`[DB] Orden guardada en historial para ${phone}.`);
+  } catch (err) {
+    console.error('[DB] Error guardando en historial:', err.message);
+    throw err;
+  }
 }
 
 /**
@@ -47,13 +40,7 @@ function saveOrderToHistory(orderData) {
  * @returns {Promise<Array>}
  */
 function getOrdersHistory() {
-  return new Promise((resolve, reject) => {
-    const sql = `SELECT * FROM orders_history ORDER BY timestamp DESC`;
-    db.all(sql, [], (err, rows) => {
-      if (err) return reject(err);
-      resolve(rows);
-    });
-  });
+  return db.query(`SELECT * FROM orders_history ORDER BY timestamp DESC`);
 }
 
 /**
@@ -63,53 +50,44 @@ function getOrdersHistory() {
 async function getBusinessMetrics() {
   const metrics = {};
 
-  // 1. Ingresos Totales
-  metrics.totalRevenue = await new Promise((res, rej) => {
-    db.get(`SELECT SUM(quantity * 5) as total FROM orders_history WHERE isTrial = 0`, [], (err, row) => {
-      if (err) rej(err); else res(row ? (row.total || 0) : 0);
-    });
-  });
+  try {
+    // 1. Ingresos Totales
+    const revenueRow = await db.getOne(`SELECT SUM(quantity * 5) as total FROM orders_history WHERE isTrial = FALSE OR isTrial = 0`);
+    metrics.totalRevenue = revenueRow ? (parseFloat(revenueRow.total) || 0) : 0;
 
-  // 2. Total de Ventas (Pedidos Aprobados)
-  metrics.totalSales = await new Promise((res, rej) => {
-    db.get(`SELECT COUNT(*) as total FROM orders_history WHERE isTrial = 0`, [], (err, row) => {
-      if (err) rej(err); else res(row ? (row.total || 0) : 0);
-    });
-  });
+    // 2. Total de Ventas (Pedidos Aprobados)
+    const salesRow = await db.getOne(`SELECT COUNT(*) as total FROM orders_history WHERE isTrial = FALSE OR isTrial = 0`);
+    metrics.totalSales = salesRow ? (parseInt(salesRow.total) || 0) : 0;
 
-  // 3. Total de Pruebas Gratis Usadas (Unicos)
-  metrics.totalTrials = await new Promise((res, rej) => {
-    db.get(`SELECT COUNT(*) as total FROM used_trials`, [], (err, row) => {
-      if (err) rej(err); else res(row ? (row.total || 0) : 0);
-    });
-  });
+    // 3. Total de Pruebas Gratis Usadas (Unicos)
+    const trialsRow = await db.getOne(`SELECT COUNT(*) as total FROM used_trials`);
+    metrics.totalTrials = trialsRow ? (parseInt(trialsRow.total) || 0) : 0;
 
-  // 4. Usuarios Convertidos (Usaron prueba y luego compraron)
-  metrics.convertedUsers = await new Promise((res, rej) => {
-    const sql = `
+    // 4. Usuarios Convertidos (Usaron prueba y luego compraron)
+    const sqlConverted = `
       SELECT COUNT(DISTINCT t.phone) as total 
       FROM used_trials t
       JOIN orders_history o ON t.phone = o.phone
-      WHERE o.isTrial = 0
+      WHERE o.isTrial = FALSE OR o.isTrial = 0
     `;
-    db.get(sql, [], (err, row) => {
-      if (err) rej(err); else res(row ? (row.total || 0) : 0);
-    });
-  });
+    const convertedRow = await db.getOne(sqlConverted);
+    metrics.convertedUsers = convertedRow ? (parseInt(convertedRow.total) || 0) : 0;
 
-  // 5. Ventas por Hora
-  metrics.salesByHour = await new Promise((res, rej) => {
-    const sql = `
-      SELECT strftime('%H:00', timestamp) as hour, COUNT(*) as count 
-      FROM orders_history 
-      WHERE isTrial = 0 
-      GROUP BY hour 
-      ORDER BY hour
-    `;
-    db.all(sql, [], (err, rows) => {
-      if (err) rej(err); else res(rows || []);
-    });
-  });
+    // 5. Ventas por Hora
+    // SQLite usa strftime, Postgres usa to_char o extract. 
+    // Como solución rápida, detectamos si es postgres o usamos una query compatible.
+    // Usaremos strftime para SQLite y to_char para Postgres
+    const isPostgres = !!process.env.DATABASE_URL;
+    const hourSql = isPostgres 
+      ? `SELECT to_char(timestamp, 'HH24:00') as hour, COUNT(*) as count FROM orders_history WHERE isTrial = FALSE GROUP BY hour ORDER BY hour`
+      : `SELECT strftime('%H:00', timestamp) as hour, COUNT(*) as count FROM orders_history WHERE isTrial = 0 GROUP BY hour ORDER BY hour`;
+    
+    metrics.salesByHour = await db.query(hourSql);
+
+  } catch (err) {
+    console.error('[DB] Error obteniendo métricas:', err.message);
+    throw err;
+  }
 
   return metrics;
 }

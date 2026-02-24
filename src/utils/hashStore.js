@@ -3,9 +3,7 @@ const fs = require('fs').promises;
 const db = require('../config/database');
 
 /**
- * Calculates the SHA256 hash of a file.
- * @param {string} filePath - The absolute path to the file.
- * @returns {Promise<string>} - The SHA256 hash of the file.
+ * Calcula el hash SHA256 de un archivo.
  */
 async function calculateFileHash(filePath) {
   const fileBuffer = await fs.readFile(filePath);
@@ -15,83 +13,46 @@ async function calculateFileHash(filePath) {
 }
 
 /**
- * Checks if a hash has already been processed by querying the database.
- * @param {string} hash - The hash to check.
- * @returns {Promise<boolean>} - True if the hash exists in the DB, false otherwise.
+ * Verifica si un hash ya ha sido procesado.
  */
-function isHashProcessed(hash) {
-  return new Promise((resolve, reject) => {
-    const sql = `SELECT hash FROM processed_hashes WHERE hash = ?`;
-    db.get(sql, [hash], (err, row) => {
-      if (err) {
-        return reject(new Error('Database query failed: ' + err.message));
-      }
-      resolve(!!row); // If a row is found, the hash exists (true). Otherwise, it's false.
-    });
-  });
+async function isHashProcessed(hash) {
+  const row = await db.getOne(`SELECT hash FROM processed_hashes WHERE hash = ?`, [hash]);
+  return !!row;
 }
 
 /**
- * Adds a hash to the database.
- * @param {string} hash - The hash to add.
- * @returns {Promise<void>}
+ * Agrega un hash a la base de datos.
  */
-function addProcessedHash(hash) {
-  return new Promise((resolve, reject) => {
-    const sql = `INSERT INTO processed_hashes (hash) VALUES (?)`;
-    db.run(sql, [hash], function(err) {
-      if (err) {
-        return reject(new Error('Database insert failed: ' + err.message));
-      }
-      resolve();
-    });
-  });
+async function addProcessedHash(hash) {
+  return db.query(`INSERT INTO processed_hashes (hash) VALUES (?)`, [hash]);
 }
 
 /**
- * Clears all processed hashes from the database.
- * @returns {Promise<void>}
+ * Limpia todos los hashes procesados de la base de datos.
  */
-function clearAllHashes() {
-  return new Promise((resolve, reject) => {
-    const sql = `DELETE FROM processed_hashes`;
-    db.run(sql, [], (err) => {
-      if (err) {
-        return reject(new Error('Database delete failed: ' + err.message));
-      }
-      resolve();
-    });
-  });
+async function clearAllHashes() {
+  return db.query(`DELETE FROM processed_hashes`);
 }
 
 /**
- * Checks if a phone has already used their trial.
- * @param {string} phone 
- * @returns {Promise<boolean>}
+ * Verifica si un teléfono ya ha usado su prueba.
  */
-function hasUsedTrial(phone) {
-  return new Promise((resolve, reject) => {
-    const sql = `SELECT phone FROM used_trials WHERE phone = ?`;
-    db.get(sql, [phone], (err, row) => {
-      if (err) return reject(err);
-      resolve(!!row);
-    });
-  });
+async function hasUsedTrial(phone) {
+  const row = await db.getOne(`SELECT phone FROM used_trials WHERE phone = ?`, [phone]);
+  return !!row;
 }
 
 /**
- * Registers a phone as having used their trial.
- * @param {string} phone 
- * @returns {Promise<void>}
+ * Registra un teléfono como habiendo usado su prueba.
+ * PostgreSQL usa ON CONFLICT DO NOTHING en lugar de INSERT OR IGNORE.
  */
-function registerUsedTrial(phone) {
-  return new Promise((resolve, reject) => {
-    const sql = `INSERT OR IGNORE INTO used_trials (phone) VALUES (?)`;
-    db.run(sql, [phone], (err) => {
-      if (err) return reject(err);
-      resolve();
-    });
-  });
+async function registerUsedTrial(phone) {
+  const isPostgres = !!process.env.DATABASE_URL;
+  const sql = isPostgres 
+    ? `INSERT INTO used_trials (phone) VALUES (?) ON CONFLICT (phone) DO NOTHING`
+    : `INSERT OR IGNORE INTO used_trials (phone) VALUES (?)`;
+  
+  return db.query(sql, [phone]);
 }
 
 module.exports = {

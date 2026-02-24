@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   bingo:
@@ -11,4 +11,7 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     restart: always
