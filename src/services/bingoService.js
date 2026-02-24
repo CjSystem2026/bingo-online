@@ -159,40 +159,25 @@ class BingoService {
   }
 
   /**
-   * Verifica si una cartilla ha completado una línea horizontal o vertical (Bingo).
+   * Verifica si una cartilla ha completado TODA la cartilla (Cartón Lleno / Full House).
+   * La condición de victoria es que TODOS los números de la cartilla estén marcados.
    * @param {Object} userCardData - Datos de la cartilla y marcas del usuario.
-   * @returns {boolean} True si hay Bingo.
+   * @param {string} userId - Identificador del usuario (para logs).
+   * @returns {boolean} True si hay Cartón Lleno.
    */
   checkBingo(userCardData, userId = 'unknown') {
     const { card, marked } = userCardData;
     for (let r = 0; r < 5; r++) {
-      let rowComplete = true;
       for (let c = 0; c < 5; c++) {
+        // Si hay algún número (no FREE) sin marcar, no hay bingo todavía
         if (card[r][c] !== 'FREE' && !marked[r][c]) {
-          rowComplete = false;
-          break;
+          return false;
         }
       }
-      if (rowComplete) {
-        console.log(`[BINGO] Usuario ${userId} ganó con Fila ${r + 1}:`, card[r]);
-        return true;
-      }
     }
-    for (let c = 0; c < 5; c++) {
-      let colComplete = true;
-      for (let r = 0; r < 5; r++) {
-        if (card[r][c] !== 'FREE' && !marked[r][c]) {
-          colComplete = false;
-          break;
-        }
-      }
-      if (colComplete) {
-        const colData = card.map(row => row[c]);
-        console.log(`[BINGO] Usuario ${userId} ganó con Columna ${c + 1}:`, colData);
-        return true;
-      }
-    }
-    return false;
+    // Si llegamos aquí, todos los números están marcados => ¡CARTÓN LLENO!
+    console.log(`[BINGO] ¡CARTÓN LLENO! Usuario ${userId} ha completado toda su cartilla.`);
+    return true;
   }
 
   /**
@@ -298,42 +283,35 @@ class BingoService {
   }
 
   /**
-   * Identifica qué jugadores están a 1 o 2 números de ganar.
+   * Identifica qué jugadores están cerca de completar su CARTÓN LLENO.
+   * Cuenta los números sin marcar en TODA la cartilla.
    * @returns {Array<Object>} Lista de { phone, missing, isTrial }
    */
   getApproachingWinners() {
     const approaching = [];
     this.userCards.forEach((userData) => {
-      let minMissingForUser = 5;
-      
+      let minMissingForUser = Infinity;
+
       userData.cards.forEach((cardSet) => {
         const { card, marked } = cardSet;
-        
-        // Revisar filas
+
+        // Contar cuántos números faltan en TODA la cartilla
+        let missingInCard = 0;
         for (let r = 0; r < 5; r++) {
-          let missing = 0;
           for (let c = 0; c < 5; c++) {
-            if (card[r][c] !== 'FREE' && !marked[r][c]) missing++;
+            if (card[r][c] !== 'FREE' && !marked[r][c]) missingInCard++;
           }
-          if (missing < minMissingForUser) minMissingForUser = missing;
         }
-        
-        // Revisar columnas
-        for (let c = 0; c < 5; c++) {
-          let missing = 0;
-          for (let r = 0; r < 5; r++) {
-            if (card[r][c] !== 'FREE' && !marked[r][c]) missing++;
-          }
-          if (missing < minMissingForUser) minMissingForUser = missing;
-        }
+        if (missingInCard < minMissingForUser) minMissingForUser = missingInCard;
       });
 
-      if (minMissingForUser === 1 || minMissingForUser === 2) {
+      // Alertar cuando le falten 5 o menos números para llegar al cartón lleno
+      if (minMissingForUser <= 5 && minMissingForUser > 0) {
         approaching.push({ phone: userData.phone, missing: minMissingForUser, isTrial: userData.isTrial });
       }
     });
-    
-    // Ordenar para mostrar primero a los que les falta solo 1
+
+    // Ordenar para mostrar primero a los que les falta menos
     return approaching.sort((a, b) => a.missing - b.missing);
   }
 }
