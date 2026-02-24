@@ -238,7 +238,7 @@ class BingoService {
       // Si se desactiva, opcionalmente podrías querer limpiar los usuarios trial existentes
       // Por ahora solo los marcamos para que no puedan usar autoplay
     }
-    console.log(`[BINGO] Modo prueba ${enabled ? 'HABILITADO' : 'DESHABILITADO'}`);
+    console.log(`[BINGO-SERVICE] Modo prueba ${enabled ? 'HABILITADO' : 'DESHABILITADO'} (Estado actual: ${this.trialEnabled})`);
   }
 
   /**

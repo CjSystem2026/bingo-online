@@ -142,6 +142,18 @@ body {
     right: 0;
   }
 
+  /* Animación X cuando menú está abierto */
+  .hamburger.active span:nth-child(1) {
+    transform: translateY(8px) rotate(45deg);
+  }
+  .hamburger.active span:nth-child(2) {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+  .hamburger.active span:nth-child(3) {
+    transform: translateY(-8px) rotate(-45deg);
+  }
+
   .nav-links li {
     margin: 15px 0;
   }

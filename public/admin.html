@@ -434,6 +434,7 @@
 
         function updateTrialBtn() {
             const btn = document.getElementById("toggleTrialBtn");
+            btn.disabled = false;
             if (trialEnabled) {
                 btn.innerText = "✅ Modo Prueba Activo";
                 btn.style.background = "#6c5ce7";
@@ -444,9 +445,20 @@
         }
 
         function toggleTrialMode() {
+            const btn = document.getElementById("toggleTrialBtn");
+            btn.innerText = "⏳ Cambiando...";
+            btn.disabled = true;
+            
             trialEnabled = !trialEnabled;
             socket.emit("admin:toggle_trial", trialEnabled);
-            updateTrialBtn();
+            
+            // Timeout de seguridad en caso de que el socket falle
+            setTimeout(() => {
+                if (btn.disabled) {
+                    btn.disabled = false;
+                    updateTrialBtn();
+                }
+            }, 2000);
         }
 
         function spawnBots() {

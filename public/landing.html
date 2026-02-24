@@ -41,7 +41,7 @@
     ></noscript>
     <!-- End Google Tag Manager (noscript) -->
 
-    <div id="topTrialBanner" class="top-trial-banner">
+    <div id="topTrialBanner" class="top-trial-banner" style="display: none">
       🎁 ¿Eres nuevo? ¡Prueba gratis aquí! <span class="cta-emoji">👇</span>
     </div>
 
@@ -355,7 +355,7 @@
               </p>
 
               <div id="paymentForm">
-                <button id="btnTrial" class="cta-button trial-button">
+                <button id="btnTrial" class="cta-button trial-button" style="display: none">
                   🎁 OBTENER PRUEBA GRATIS
                 </button>
                 <div id="trialBadge" class="trial-badge" style="display: none">
@@ -516,8 +516,39 @@
     </footer>
 
     <script>
-      // Configuración global
-      const globalTrialEnabled = true;
+      // Configuración global (dinámica)
+      let globalTrialEnabled = true;
+
+      // Sincronizar estado inicial con el servidor
+      async function syncTrialStatus() {
+        try {
+          const resp = await fetch('/api/trial-status');
+          const data = await resp.json();
+          globalTrialEnabled = data.enabled;
+          
+          const btnTrial = document.getElementById("btnTrial");
+          const topTrialBanner = document.getElementById("topTrialBanner");
+          
+          if (globalTrialEnabled && !localStorage.getItem("bingo_trial_used")) {
+            btnTrial.style.display = "block";
+            if (topTrialBanner) topTrialBanner.style.display = "block";
+          } else {
+            btnTrial.style.display = "none";
+            if (topTrialBanner) topTrialBanner.style.display = "none";
+          }
+        } catch (err) {
+          console.error("Error sincronizando modo prueba:", err);
+        }
+      }
+      syncTrialStatus();
+
+      // Función para abrir/cerrar el menú hamburguesa en mobile
+      function toggleMenu() {
+        const navLinks = document.getElementById('navLinks');
+        const hamburger = document.getElementById('hamburger');
+        navLinks.classList.toggle('active');
+        hamburger.classList.toggle('active');
+      }
 
       // Lógica del Contador Regresivo
       function updateCountdown() {
@@ -731,6 +762,12 @@
         const phone = document.getElementById("userPhone").value;
         const playerName = document.getElementById("userName").value;
         const screenshotFile = document.getElementById("screenshot").files[0];
+
+        if (isTrialMode && !globalTrialEnabled) {
+          alert("El modo prueba ha sido desactivado recientemente. Por favor, usa la compra normal.");
+          location.reload();
+          return;
+        }
 
         if (!phone) {
           alert("Por favor, ingresa tu número de celular.");

@@ -10,6 +10,7 @@ const path = require('path');
 const fs = require('fs');
 const { calculateFileHash, isHashProcessed, addProcessedHash, hasUsedTrial, registerUsedTrial } = require('../utils/hashStore');
 const { getBusinessMetrics } = require('../utils/orderPersistence');
+const bingoService = require('../services/bingoService');
 
 // Cliente de Google Cloud Vision
 const visionOptions = {};
@@ -21,7 +22,6 @@ const visionClient = new vision.ImageAnnotatorClient(visionOptions);
 module.exports = (io) => {
   // API: Consultar si el modo prueba está habilitado globalmente (Público)
   router.get('/trial-status', (req, res) => {
-    const bingoService = require('../services/bingoService');
     res.json({ enabled: bingoService.trialEnabled });
   });
 
@@ -51,7 +51,16 @@ module.exports = (io) => {
       const isTrial = req.body.isTrial === 'true';
       const playerName = req.body.playerName; // Para pruebas
 
-      // 1. Validar que el archivo exista (solo si no es prueba)
+      // 1. Validar si el modo prueba está habilitado globalmente si se solicita una prueba
+      if (isTrial && !bingoService.trialEnabled) {
+        if (req.file) await fs.promises.unlink(req.file.path);
+        return res.status(403).json({
+          success: false,
+          message: 'El modo prueba está desactivado en este momento. Por favor, realiza un pago real para jugar.'
+        });
+      }
+
+      // 2. Validar que el archivo exista (solo si no es prueba)
       if (!req.file && !isTrial) {
         return res.status(400).json({ 
           success: false, 
@@ -321,7 +330,6 @@ module.exports = (io) => {
 
   // API: Obtener estado actual del juego (Solo Admin)
   router.get('/admin/game-state', basicAuth, (req, res) => {
-    const bingoService = require('../services/bingoService');
     res.json(bingoService.getState());
   });
 
