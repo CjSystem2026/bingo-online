@@ -137,7 +137,7 @@
           <div class="quick-steps">
             <div class="q-step">
               <span class="q-num">1</span>
-              <p>Mira el sorteo vive</p>
+              <p>Mira el sorteo en vivo</p>
             </div>
             <div class="q-step">
               <span class="q-num">2</span>
@@ -214,26 +214,39 @@
 
     <main>
       <section id="tutorial">
-        <h2>🚀 ¿Cómo obtener tu cartilla? (Tutorial)</h2>
-        <div class="video-container" id="videoContainer" onclick="toggleMute()">
-          <video id="tutorialVideo" autoplay muted loop playsinline>
-            <source src="img/bingo.mp4" type="video/mp4" />
-            Tu navegador no soporta videos.
-          </video>
-          <div class="video-overlay" id="videoOverlay">
-            <span>🔊 Tocar para escuchar</span>
+        <h2>🚀 ¿Cómo obtener tu cartilla?</h2>
+
+        <div class="new-flow-steps">
+          <div class="nf-step">
+            <div class="nf-icon-box">
+              <i class="fas fa-mobile-alt"></i>
+            </div>
+            <div class="nf-step-content">
+              <h3>1. Registra tu Celular</h3>
+              <p>Ingresa tu número abajo en la sección de pago para vincular tu juego.</p>
+            </div>
+          </div>
+          
+          <div class="nf-step">
+            <div class="nf-icon-box">
+              <i class="fab fa-whatsapp" style="color: #25d366;"></i>
+            </div>
+            <div class="nf-step-content">
+              <h3>2. Envía tu Captura</h3>
+              <p>El botón te llevará directo a WhatsApp para enviarnos la foto de tu Yape/Plin.</p>
+            </div>
+          </div>
+          
+          <div class="nf-step">
+            <div class="nf-icon-box">
+              <i class="fas fa-ticket-alt" style="color: var(--gold);"></i>
+            </div>
+            <div class="nf-step-content">
+              <h3>3. ¡A Jugar!</h3>
+              <p>Al ser aprobado por el admin, esta web se actualizará sola con tu cartilla.</p>
+            </div>
           </div>
         </div>
-        <p
-          style="
-            margin-top: 15px;
-            font-size: 0.9rem;
-            color: #666;
-            font-weight: 600;
-          "
-        >
-          💡 Mira el video para saber cómo registrarte paso a paso.
-        </p>
       </section>
 
       <section id="nosotros">
@@ -347,77 +360,77 @@
               </div>
             </div>
 
-            <div class="p-step-card">
-              <div class="p-step-num">2</div>
-              <h3>Sube tu Captura</h3>
-              <p id="paymentStepTitle">
-                Indica tu número de celular y adjunta el comprobante.
-              </p>
-
-              <div id="paymentForm">
-                <button id="btnTrial" class="cta-button trial-button" style="display: none">
-                  🎁 OBTENER PRUEBA GRATIS
-                </button>
-                <div id="trialBadge" class="trial-badge" style="display: none">
-                  MODO PRUEBA ACTIVADO
-                </div>
-                <button
-                  id="btnBackToNormal"
-                  class="back-link"
-                  style="display: none; margin-bottom: 15px"
-                >
-                  Regresar a compra normal
-                </button>
-
-                <div id="nameContainer" style="display: none; width: 100%">
-                  <input
-                    type="text"
-                    id="userName"
-                    placeholder="Tu nombre o apodo"
-                    maxlength="20"
-                    class="premium-input"
-                  />
-                </div>
-
-                <input
-                  type="text"
-                  id="userPhone"
-                  placeholder="Tu número de celular (9 dígitos)"
-                  maxlength="9"
-                  inputmode="numeric"
-                  class="premium-input"
-                />
-
-                <div
-                  id="screenshotContainer"
-                  style="text-align: left; width: 100%"
-                >
-                  <label class="input-label"
-                    >📸 Adjuntar captura de pago:</label
-                  >
-                  <label for="screenshot" class="custom-file-upload">
-                    <i class="fas fa-cloud-upload-alt"></i>
-                    <span id="fileNameDisplay">Toca para subir tu captura</span>
-                  </label>
-                  <input
-                    type="file"
-                    id="screenshot"
-                    accept="image/*"
-                    class="hidden-input"
-                    onchange="updateFileName(this)"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div class="p-step-card">
-              <div class="p-step-num">3</div>
-              <h3>¡Juega!</h3>
-              <p>Recibirás tu acceso al instante para el sorteo en vivo.</p>
-              <button class="cta-button gold-button" id="btnValidate">
-                ¡OBTENER MI CARTILLA!
-              </button>
-            </div>
+             <div class="p-step-card">
+               <div class="p-step-num">2</div>
+               <h3>Indica tu Celular</h3>
+               <p id="paymentStepTitle">
+                 Ingresa tu número de celular para registrar tu participación.
+               </p>
+ 
+               <div id="paymentForm">
+                 <button id="btnTrial" class="cta-button trial-button" style="display: none">
+                   🎁 OBTENER PRUEBA GRATIS
+                 </button>
+                 <div id="trialBadge" class="trial-badge" style="display: none">
+                   MODO PRUEBA ACTIVADO
+                 </div>
+                 <button
+                   id="btnBackToNormal"
+                   class="back-link"
+                   style="display: none; margin-bottom: 15px"
+                 >
+                   Regresar a compra normal
+                 </button>
+ 
+                 <div id="nameContainer" style="display: none; width: 100%">
+                   <input
+                     type="text"
+                     id="userName"
+                     placeholder="Tu nombre o apodo"
+                     maxlength="20"
+                     class="premium-input"
+                   />
+                 </div>
+ 
+                 <input
+                   type="text"
+                   id="userPhone"
+                   placeholder="Tu número de celular (9 dígitos)"
+                   maxlength="9"
+                   inputmode="numeric"
+                   class="premium-input"
+                 />
+ 
+                 <div
+                   id="screenshotContainer"
+                   style="display: none; text-align: left; width: 100%"
+                 >
+                   <label class="input-label"
+                     >📸 Adjuntar captura de pago:</label
+                   >
+                   <label for="screenshot" class="custom-file-upload">
+                     <i class="fas fa-cloud-upload-alt"></i>
+                     <span id="fileNameDisplay">Toca para subir tu captura</span>
+                   </label>
+                   <input
+                     type="file"
+                     id="screenshot"
+                     accept="image/*"
+                     class="hidden-input"
+                     onchange="updateFileName(this)"
+                   />
+                 </div>
+               </div>
+             </div>
+ 
+             <div class="p-step-card">
+               <div class="p-step-num">3</div>
+               <h3>¡Juega!</h3>
+               <p>Envía tu captura por WhatsApp y tu juego se activará aquí.</p>
+               <button class="cta-button gold-button" id="btnValidate">
+                 📲 YAPEAR Y ENVIAR COMPROBANTE
+               </button>
+             </div>
           </div>
 
           <div id="statusContainer" style="display: none; margin-top: 20px">
@@ -429,7 +442,7 @@
 
           <div class="payment-support">
             <a
-              href="https://wa.me/51931896832"
+              href="https://wa.me/51931481960"
               class="wa-link"
             >
               <i class="fab fa-whatsapp"></i> ¿Problemas? Soporte por WhatsApp
@@ -473,7 +486,7 @@
               ><i class="fab fa-instagram"></i
             ></a>
             <a href="#" aria-label="TikTok"><i class="fab fa-tiktok"></i></a>
-            <a href="https://wa.me/51931896832" aria-label="WhatsApp"
+            <a href="https://wa.me/51931481960" aria-label="WhatsApp"
               ><i class="fab fa-whatsapp"></i
             ></a>
           </div>
@@ -550,40 +563,69 @@
         hamburger.classList.toggle('active');
       }
 
-      // Lógica del Contador Regresivo
-      function updateCountdown() {
-        const now = new Date();
-        const target = new Date();
+      // Lógica del Contador Regresivo — Todos los Domingos a las 5:00 PM (Hora Perú UTC-5)
+      function getNextSundayAt5pmPeru() {
+        // Hora actual en UTC
+        const nowUTC = new Date();
+        // Convertir a hora Perú (UTC-5)
+        const peruOffset = -5 * 60; // minutos
+        const localOffset = nowUTC.getTimezoneOffset(); // minutos respecto a UTC (negativo en zonas oeste)
+        const peruNow = new Date(nowUTC.getTime() + (localOffset + peruOffset) * 60000);
 
-        // Configurar el objetivo: Próximo Domingo a las 10:00 PM (22:00)
-        target.setHours(22, 0, 0, 0);
+        // Construir el objetivo: próximo domingo a las 17:00:00 en hora Perú
+        const target = new Date(peruNow);
+        target.setHours(17, 0, 0, 0);
 
-        // Calcular días hasta el próximo domingo (domingo es 0)
-        let daysUntilSunday = (7 - now.getDay()) % 7;
+        // Calcular días hasta el próximo domingo (0 = domingo)
+        let daysUntilSunday = (7 - peruNow.getDay()) % 7;
 
-        // Si hoy es domingo pero ya pasaron las 10 PM, apuntar al próximo domingo
-        if (daysUntilSunday === 0 && now > target) {
+        // Si hoy es domingo pero ya pasaron las 5pm, apuntar al próximo domingo
+        if (daysUntilSunday === 0 && peruNow >= target) {
           daysUntilSunday = 7;
         }
 
-        target.setDate(now.getDate() + daysUntilSunday);
+        target.setDate(peruNow.getDate() + daysUntilSunday);
 
+        // Convertir el target Perú de vuelta a UTC para comparar con Date() del cliente
+        const targetUTC = new Date(target.getTime() - (localOffset + peruOffset) * 60000);
+        return targetUTC;
+      }
+
+      function updateCountdown() {
+        const now = new Date();
+        const target = getNextSundayAt5pmPeru();
         const diff = target - now;
+        const banner = document.getElementById("countdown-banner");
+        const timerEl = document.getElementById("timer");
 
-        const h = Math.floor(diff / (1000 * 60 * 60));
+        // Ventana "EN VIVO": entre las 5:00 PM y las 8:00 PM Perú del domingo
+        const liveWindowMs = 3 * 60 * 60 * 1000; // 3 horas en ms
+        const timeUntilNext = getNextSundayAt5pmPeru() - now;
+        const isLive = timeUntilNext > (7 * 24 * 60 * 60 * 1000 - liveWindowMs);
+
+        if (isLive) {
+          timerEl.innerText = "¡EN VIVO! 🔴";
+          timerEl.style.fontSize = "1.2rem";
+          if (banner) banner.style.borderColor = "#ff4757";
+          return;
+        }
+
+        const totalHours = Math.floor(diff / (1000 * 60 * 60));
+        const days  = Math.floor(totalHours / 24);
+        const hours = totalHours % 24;
         const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
         const s = Math.floor((diff % (1000 * 60)) / 1000);
 
-        const displayH = h < 10 ? "0" + h : h;
-        const displayM = m < 10 ? "0" + m : m;
-        const displayS = s < 10 ? "0" + s : s;
+        const pad = n => String(n).padStart(2, "0");
 
-        document.getElementById("timer").innerText =
-          `${displayH}:${displayM}:${displayS}`;
+        if (days > 0) {
+          timerEl.innerText = `${days}d ${pad(hours)}h ${pad(m)}m`;
+        } else {
+          timerEl.innerText = `${pad(hours)}:${pad(m)}:${pad(s)}`;
+        }
 
-        // Pantallas con fondo de alerta si falta poco (opcional)
-        if (h === 0 && m < 30) {
-          const banner = document.getElementById("countdown-banner");
+        // Alerta visual cuando faltan menos de 30 minutos
+        if (totalHours === 0 && m < 30) {
           if (banner) banner.style.borderColor = "var(--accent)";
         }
       }
@@ -692,11 +734,11 @@
         }
         trialBadge.style.display = "none";
         document.getElementById("nameContainer").style.display = "none";
-        screenshotContainer.style.display = "block";
+        screenshotContainer.style.display = "none";
         btnBackToNormal.style.display = "none";
         paymentStepTitle.innerText =
-          "Luego, ingresa tu número y adjunta tu comprobante:";
-        btnValidate.innerText = "¡OBTÉN TU CARTILLA POR S/ 5!";
+          "Ingresa tu número de celular para registrar tu participación.";
+        btnValidate.innerText = "📲 YAPEAR Y ENVIAR COMPROBANTE";
       });
 
       // Verificar disponibilidad de prueba al ingresar el número
@@ -731,13 +773,16 @@
       const statusMsg = document.getElementById("statusMsg");
       const btnChangeNumber = document.getElementById("btnChangeNumber");
 
-      // Al cargar, verificar si ya tiene un token de pedido guardado
+      // Al cargar, verificar si ya tiene un token de pedido o celular guardado
       window.addEventListener("load", () => {
         const savedToken = localStorage.getItem("bingo_request_token");
         const savedPhone = localStorage.getItem("bingo_phone");
         if (savedToken) {
           showStatusMode(savedPhone || "tu número");
           startPolling(savedToken);
+        } else if (savedPhone) {
+          showStatusMode(savedPhone);
+          startPolling(savedPhone);
         }
       });
 
@@ -754,14 +799,13 @@
         statusMsg.style.color = "#856404";
         const msg = isTrialMode
           ? "validando tu acceso de prueba"
-          : "validando pago";
-        statusMsg.innerText = `⏳ Estamos ${msg} para el número ${phone}... Por favor, espera unos instantes.`;
+          : "esperando confirmación del pago en WhatsApp";
+        statusMsg.innerText = `⏳ Celular: ${phone}. Por favor, envíanos tu captura de Yape por WhatsApp para validar tu pago. Esta pantalla se actualizará automáticamente una vez aprobado.`;
       }
 
       btnValidate.addEventListener("click", async () => {
         const phone = document.getElementById("userPhone").value;
         const playerName = document.getElementById("userName").value;
-        const screenshotFile = document.getElementById("screenshot").files[0];
 
         if (isTrialMode && !globalTrialEnabled) {
           alert("El modo prueba ha sido desactivado recientemente. Por favor, usa la compra normal.");
@@ -784,15 +828,7 @@
           return;
         }
 
-        if (!isTrialMode && !screenshotFile) {
-          alert("Es obligatorio adjuntar la captura de pantalla de tu pago.");
-          return;
-        }
-
-        btnValidate.disabled = true;
-        btnValidate.innerText = "ENVIANDO...";
-
-        // Evento GTM: Intento de pago/registro
+        // Evento GTM: Intento de pago/registro o redirección
         window.dataLayer = window.dataLayer || [];
         window.dataLayer.push({
           event: "payment_attempt",
@@ -800,67 +836,104 @@
           phone_start: phone.substring(0, 3),
         });
 
-        try {
-          const formData = new FormData();
-          formData.append("phone", phone);
-          if (playerName) formData.append("playerName", playerName);
-          if (screenshotFile) formData.append("screenshot", screenshotFile);
-          if (isTrialMode) {
+        if (isTrialMode) {
+          btnValidate.disabled = true;
+          btnValidate.innerText = "ENVIANDO...";
+          try {
+            const formData = new FormData();
+            formData.append("phone", phone);
+            formData.append("playerName", playerName);
             formData.append("isTrial", "true");
             localStorage.setItem("bingo_trial_used", "true");
-          }
 
-          const response = await fetch("/api/validate-payment", {
-            method: "POST",
-            body: formData,
-          });
-
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || "Error del servidor");
-          }
-
-          const data = await response.json();
-
-          if (data.success) {
-            // Evento GTM: Registro exitoso
-            window.dataLayer.push({
-              event: "payment_success",
-              is_trial: isTrialMode,
-              request_token: data.requestToken,
+            const response = await fetch("/api/validate-payment", {
+              method: "POST",
+              body: formData,
             });
 
-            if (data.message) {
-              alert(data.message);
+            if (!response.ok) {
+              const errorData = await response.json().catch(() => ({}));
+              throw new Error(errorData.message || "Error del servidor");
             }
-            localStorage.setItem("bingo_phone", phone);
-            localStorage.setItem("bingo_request_token", data.requestToken);
-            showStatusMode(phone);
-            startPolling(data.requestToken);
-          } else {
-            alert(data.message || "Error al validar");
-            btnValidate.disabled = false;
-            btnValidate.innerText = isTrialMode
-              ? "¡OBTÉN MI PRUEBA GRATIS!"
-              : "¡OBTÉN TU CARTILLA POR S/ 5!";
-          }
-        } catch (err) {
-          console.error("Error en validate-payment:", err);
-          // Evento GTM: Error en proceso
-          window.dataLayer.push({
-            event: "payment_error",
-            error_msg: err.message,
-          });
 
-          alert(
-            "Hubo un inconveniente al procesar tu solicitud: " +
-              err.message +
-              ". Si el problema persiste, contacta a soporte por WhatsApp.",
-          );
+            const data = await response.json();
+
+            if (data.success) {
+              window.dataLayer.push({
+                event: "payment_success",
+                is_trial: true,
+                request_token: data.requestToken,
+              });
+
+              localStorage.setItem("bingo_phone", phone);
+              localStorage.setItem("bingo_request_token", data.requestToken);
+              showStatusMode(phone);
+              startPolling(data.requestToken);
+            } else {
+              alert(data.message || "Error al validar la prueba");
+              btnValidate.disabled = false;
+              btnValidate.innerText = "¡OBTÉN MI PRUEBA GRATIS!";
+            }
+          } catch (err) {
+            console.error("Error en validate-payment (prueba):", err);
+            alert("Hubo un inconveniente al procesar tu solicitud: " + err.message);
+            btnValidate.disabled = false;
+            btnValidate.innerText = "¡OBTÉN MI PRUEBA GRATIS!";
+          }
+        } else {
+          // COMPRA NORMAL: Verificar si ya tiene un pedido aprobado o pendiente en el servidor antes de redirigir
+          btnValidate.disabled = true;
+          const originalText = btnValidate.innerText;
+          btnValidate.innerText = "VERIFICANDO...";
+          
+          try {
+            const checkResp = await fetch(`/api/check-status/${phone}`);
+            const checkData = await checkResp.json();
+            
+            if (checkData.status === "approved") {
+              // Ya está aprobado, guardar datos y redirigir de inmediato al juego
+              localStorage.setItem("bingo_phone", phone);
+              if (checkData.items && checkData.items.length > 0) {
+                // Guardar el requestToken de la primera cartilla
+                localStorage.setItem("bingo_request_token", checkData.items[0].token);
+              }
+              showStatusMode(phone);
+              statusMsg.style.background = "#d4edda";
+              statusMsg.style.color = "#155724";
+              statusMsg.innerHTML = `¡Ya tienes una compra aprobada! 🎉 <br><br> Redirigiendo a tu cartilla...`;
+              setTimeout(() => {
+                window.location.href = checkData.url;
+              }, 1200);
+              return;
+            } else if (checkData.status === "pending") {
+              // Ya tiene un pedido pendiente en espera, sincronizar y empezar polling
+              localStorage.setItem("bingo_phone", phone);
+              if (checkData.requestToken) {
+                localStorage.setItem("bingo_request_token", checkData.requestToken);
+              }
+              showStatusMode(phone);
+              startPolling(phone);
+              btnValidate.disabled = false;
+              btnValidate.innerText = originalText;
+              return;
+            }
+          } catch (e) {
+            console.error("Error checking existing order status:", e);
+          }
+          
           btnValidate.disabled = false;
-          btnValidate.innerText = isTrialMode
-            ? "¡OBTÉN MI PRUEBA GRATIS!"
-            : "¡OBTÉN TU CARTILLA POR S/ 5!";
+          btnValidate.innerText = originalText;
+          
+          // COMPRA NORMAL: Guardar teléfono y redirigir a WhatsApp
+          localStorage.setItem("bingo_phone", phone);
+          showStatusMode(phone);
+          
+          // Abrir WhatsApp en pestaña nueva
+          const waUrl = `https://wa.me/51931481960?text=${encodeURIComponent(`¡Hola! Acabo de yapear para el Bingo. Mi celular registrado es ${phone}. Aquí te envío la captura de pantalla de mi pago:`)}`;
+          window.open(waUrl, "_blank");
+          
+          // Comenzar a escuchar por si se aprueba el pago
+          startPolling(phone);
         }
       });
 
@@ -902,7 +975,7 @@
       }
     </script>
     <a
-      href="https://wa.me/51931896832"
+      href="https://wa.me/51931481960"
       class="whatsapp-float"
       target="_blank"
     >

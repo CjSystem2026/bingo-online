@@ -275,6 +275,40 @@ module.exports = (io) => {
         io.emit('admin:order_approved', data);
       });
       emitBingoStats(io); // Actualizar estadísticas para todos
+
+      // Notificar al bot de WhatsApp si está configurado y no es una prueba gratis
+      const agentUrl = process.env.AGENT_BACKEND_URL;
+      const isTrial = approvalResults[0].isTrial;
+      const phone = approvalResults[0].phone;
+      const token = approvalResults[0].token;
+
+      if (agentUrl && !isTrial) {
+        const host = req.get('host');
+        const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+        const playUrl = `${protocol}://${host}/jugar?t=${token}`;
+        const messageText = `¡Hola! Tu pago ha sido verificado. 🎉 Aquí tienes tu cartilla para jugar en vivo: ${playUrl}`;
+        
+        console.log(`[BOT-NOTIFICATION] Enviando link a WhatsApp del cliente ${phone}...`);
+        
+        // Usar fetch nativo (Node 18+) para notificar al bot en segundo plano
+        fetch(`${agentUrl}/api/leads/${phone}/message`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ text: messageText })
+        })
+        .then(response => {
+          if (!response.ok) {
+            console.error(`[BOT-NOTIFICATION] Error al notificar al bot (status ${response.status})`);
+          } else {
+            console.log(`[BOT-NOTIFICATION] Notificación enviada con éxito al bot para el cliente ${phone}`);
+          }
+        })
+        .catch(err => {
+          console.error('[BOT-NOTIFICATION] Error de red al conectar con el bot:', err.message);
+        });
+      }
       
       // Devolvemos el primer token y el teléfono para la automatización del panel admin
       res.json({ 
