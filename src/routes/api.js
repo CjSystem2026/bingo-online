@@ -61,11 +61,9 @@ module.exports = (io) => {
       }
 
       // 2. Validar que el archivo exista (solo si no es prueba)
+      // MOD: En la rama demo-tiktok permitimos omitir la captura en el registro
       if (!req.file && !isTrial) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'Es obligatorio adjuntar la captura de pantalla de tu pago.' 
-        });
+        // Continuamos sin error
       }
 
       try {
@@ -226,7 +224,7 @@ module.exports = (io) => {
           extractedCode = 'PRUEBA';
         }
 
-        const screenshotPath = req.file ? `/uploads/${req.file.filename}` : null;
+        const screenshotPath = req.file ? `/uploads/${req.file.filename}` : '/img/yape-example.png';
         const newOrder = orderService.addPendingOrder(phoneDigits, extractedCode, screenshotPath, isTrial, extractedName);
 
         if (isTrial) {
