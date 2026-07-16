@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>WhatsApp Chat</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: #efeae2;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Header style */
+    .chat-header {
+      background-color: #008069;
+      color: white;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 60px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+      position: relative;
+      z-index: 10;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .back-btn {
+      font-size: 18px;
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: #e1e9eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #54656f;
+      font-size: 20px;
+      position: relative;
+    }
+
+    .avatar-img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .contact-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .contact-name {
+      font-weight: 600;
+      font-size: 16px;
+    }
+
+    .contact-status {
+      font-size: 12px;
+      opacity: 0.85;
+      transition: all 0.3s ease;
+    }
+
+    .header-right {
+      display: flex;
+      gap: 20px;
+      font-size: 18px;
+    }
+
+    .header-right i {
+      cursor: pointer;
+    }
+
+    /* Chat Area */
+    .chat-container {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+      background-repeat: repeat;
+      background-size: auto;
+    }
+
+    /* Message Bubbles */
+    .message {
+      max-width: 80%;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 14.5px;
+      line-height: 1.4;
+      position: relative;
+      word-wrap: break-word;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+    }
+
+    .message.received {
+      background-color: white;
+      align-self: flex-start;
+      border-top-left-radius: 0;
+    }
+
+    .message.sent {
+      background-color: #d9fdd3;
+      align-self: flex-end;
+      border-top-right-radius: 0;
+    }
+
+    .message-time {
+      font-size: 10px;
+      color: #667781;
+      align-self: flex-end;
+      margin-top: 4px;
+      margin-left: 20px;
+    }
+
+    .message-media {
+      margin-bottom: 6px;
+      border-radius: 6px;
+      overflow: hidden;
+      max-width: 100%;
+      border: 1px solid #e1e9eb;
+    }
+
+    .message-media img {
+      width: 100%;
+      max-height: 200px;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* System Badge */
+    .system-badge {
+      background-color: #ffeecd;
+      color: #54656f;
+      font-size: 11px;
+      padding: 5px 12px;
+      border-radius: 6px;
+      align-self: center;
+      text-transform: uppercase;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.08);
+      font-weight: 500;
+    }
+
+    /* Footer / Input area */
+    .chat-footer {
+      background-color: #f0f2f5;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-top: 1px solid #e1e9eb;
+    }
+
+    .input-bar {
+      flex: 1;
+      background-color: white;
+      border-radius: 20px;
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border: 1px solid #e1e9eb;
+    }
+
+    .input-bar input {
+      flex: 1;
+      border: none;
+      outline: none;
+      font-size: 15px;
+      color: #111b21;
+    }
+
+    .input-bar i {
+      color: #54656f;
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    .send-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: #008069;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      border: none;
+      cursor: pointer;
+    }
+
+    /* Animated typing indicator */
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      height: 20px;
+      padding: 4px 8px;
+    }
+
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      background-color: #8696a0;
+      border-radius: 50%;
+      animation: bounce 1.3s infinite ease-in-out;
+    }
+
+    .typing-dot:nth-child(2) { animation-delay: 0.15s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.3s; }
+
+    @keyframes bounce {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-6px); }
+    }
+
+    /* Hidden elements */
+    .hidden {
+      display: none !important;
+    }
+
+    /* Cartilla Link Style */
+    .cartilla-card {
+      border-left: 4px solid #00a884;
+      background-color: #f8f9fa;
+      padding: 8px;
+      border-radius: 4px;
+      margin-top: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .cartilla-title {
+      font-weight: 600;
+      color: #00a884;
+      font-size: 13px;
+    }
+
+    .cartilla-desc {
+      font-size: 12px;
+      color: #667781;
+    }
+
+    .cartilla-link {
+      color: #039be5;
+      text-decoration: none;
+      font-size: 13.5px;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Audio elements -->
+  <audio id="notification-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav" preload="auto"></audio>
+
+  <!-- Header -->
+  <header class="chat-header">
+    <div class="header-left">
+      <i class="fas fa-arrow-left back-btn"></i>
+      <div class="avatar">
+        <i class="fas fa-user-tie"></i>
+      </div>
+      <div class="contact-info">
+        <span class="contact-name">DaraBingo Soporte</span>
+        <span id="status-text" class="contact-status">En línea</span>
+      </div>
+    </div>
+    <div class="header-right">
+      <i class="fas fa-video"></i>
+      <i class="fas fa-phone"></i>
+      <i class="fas fa-ellipsis-v"></i>
+    </div>
+  </header>
+
+  <!-- Chat Area -->
+  <main class="chat-container" id="chat-messages">
+    <div class="system-badge">Hoy</div>
+
+    <!-- User screenshot message -->
+    <div class="message sent">
+      <div class="message-media">
+        <img id="yape-img" src="https://placehold.co/400x300/d1e7dd/0f5132?text=Yape+S/+8.00" alt="Comprobante Yape">
+      </div>
+      <span id="user-msg-text">¡Hola! Acaba de yapear para el Bingo. Mi celular registrado es...</span>
+      <span class="message-time" id="sent-time-1">10:00 p.m.</span>
+    </div>
+
+    <!-- Bot immediate response -->
+    <div class="message received">
+      <span>¡Muchas gracias! Recibí tu comprobante. En unos momentos el administrador lo validará y te llegará tu link de juego por aquí. 🎟️</span>
+      <span class="message-time" id="sent-time-2">10:00 p.m.</span>
+    </div>
+
+    <!-- Typing indicator bubble (initially hidden) -->
+    <div class="message received hidden" id="typing-bubble">
+      <div class="typing-indicator">
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer Input -->
+  <footer class="chat-footer">
+    <div class="input-bar">
+      <i class="far fa-laugh"></i>
+      <input type="text" placeholder="Mensaje" readonly value="Solo lectura en modo demo">
+      <i class="fas fa-paperclip"></i>
+      <i class="fas fa-camera"></i>
+    </div>
+    <button class="send-btn">
+      <i class="fas fa-microphone"></i>
+    </button>
+  </footer>
+
+  <script>
+    // Get query parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const phone = urlParams.get('phone') || '999999999';
+
+    // Update sent times to current time
+    const now = new Date();
+    const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('sent-time-1').innerText = timeString;
+    document.getElementById('sent-time-2').innerText = timeString;
+
+    // Update user message text
+    document.getElementById('user-msg-text').innerText = `¡Hola! Acabo de yapear para el Bingo. Mi celular registrado es ${phone}. Aquí te envío la captura de pantalla de mi pago:`;
+
+    // Try to load user's actual screenshot if it exists in localStorage
+    const savedScreenshot = localStorage.getItem('bingo_screenshot_preview');
+    if (savedScreenshot) {
+      document.getElementById('yape-img').src = savedScreenshot;
+    }
+
+    const chatContainer = document.getElementById('chat-messages');
+    const typingBubble = document.getElementById('typing-bubble');
+    const statusText = document.getElementById('status-text');
+    const notificationSound = document.getElementById('notification-sound');
+
+    // Scroll to bottom of chat
+    function scrollToBottom() {
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+    scrollToBottom();
+
+    let hasApproved = false;
+
+    // Start Polling API for status
+    const interval = setInterval(async () => {
+      if (hasApproved) return;
+
+      try {
+        const response = await fetch(`/api/check-status/${phone}`);
+        const data = await response.json();
+
+        if (data.status === 'approved') {
+          hasApproved = true;
+          clearInterval(interval);
+          
+          // Trigger the mock WhatsApp typing and incoming message animation
+          showBotResponse(data.url);
+        }
+      } catch (e) {
+        console.error('Error polling order status:', e);
+      }
+    }, 3000);
+
+    function showBotResponse(cardUrl) {
+      // 1. Set status to "Escribiendo..."
+      statusText.innerText = 'Escribiendo...';
+      
+      // 2. Show typing bubble in chat
+      typingBubble.classList.remove('hidden');
+      scrollToBottom();
+
+      // 3. Wait 2.5 seconds to simulate typing
+      setTimeout(() => {
+        // Hide typing bubble
+        typingBubble.classList.add('hidden');
+        statusText.innerText = 'En línea';
+
+        // Play standard notification sound
+        try {
+          notificationSound.play();
+        } catch (e) {
+          console.log("Audio play failed or blocked by browser policy:", e);
+        }
+
+        // Create approved message element
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'message received';
+        
+        const nowApprove = new Date();
+        const approveTime = nowApprove.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        msgDiv.innerHTML = `
+          <span>¡Hola! Tu pago ha sido verificado. 🎉 Aquí tienes tu cartilla para jugar en vivo:</span>
+          <div class="cartilla-card">
+            <span class="cartilla-title">DaraBingo - Cartilla de Juego</span>
+            <span class="cartilla-desc">Haz clic en el enlace para abrir tu cartilla y ver el sorteo en tiempo real.</span>
+            <a class="cartilla-link" href="${cardUrl}" target="_blank">${window.location.origin}${cardUrl}</a>
+          </div>
+          <span class="message-time">${approveTime}</span>
+        `;
+
+        // Append to chat
+        chatContainer.appendChild(msgDiv);
+        scrollToBottom();
+
+        // Optional: Save approval state in localStorage to prevent polling again on refresh
+        localStorage.setItem(`bingo_approved_${phone}`, cardUrl);
+      }, 2500);
+    }
+
+    // Check if it was already approved in previous session
+    const cachedUrl = localStorage.getItem(`bingo_approved_${phone}`);
+    if (cachedUrl) {
+      clearInterval(interval);
+      // Immediately display the approved message (no typing wait for pre-approved)
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'message received';
+      msgDiv.innerHTML = `
+        <span>¡Hola! Tu pago ha sido verificado. 🎉 Aquí tienes tu cartilla para jugar en vivo:</span>
+        <div class="cartilla-card">
+          <span class="cartilla-title">DaraBingo - Cartilla de Juego</span>
+          <span class="cartilla-desc">Haz clic en el enlace para abrir tu cartilla y ver el sorteo en tiempo real.</span>
+          <a class="cartilla-link" href="${cachedUrl}" target="_blank">${window.location.origin}${cachedUrl}</a>
+        </div>
+        <span class="message-time">${timeString}</span>
+      `;
+      chatContainer.appendChild(msgDiv);
+      scrollToBottom();
+    }
+  </script>
+</body>
+</html>

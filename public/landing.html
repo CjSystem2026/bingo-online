@@ -924,16 +924,59 @@
           btnValidate.disabled = false;
           btnValidate.innerText = originalText;
           
-          // COMPRA NORMAL: Guardar teléfono y redirigir a WhatsApp
-          localStorage.setItem("bingo_phone", phone);
-          showStatusMode(phone);
+          // COMPRA NORMAL (MODO DEMO): Registrar la orden localmente para que aparezca en el Admin Panel
+          btnValidate.disabled = true;
+          btnValidate.innerText = "ENVIANDO...";
           
-          // Abrir WhatsApp en pestaña nueva
-           const waUrl = `https://wa.me/51969870112?text=${encodeURIComponent(`¡Hola! Acabo de yapear para el Bingo. Mi celular registrado es ${phone}. Aquí te envío la captura de pantalla de mi pago:`)}`;
-           window.open(waUrl, "_blank");
-          
-          // Comenzar a escuchar por si se aprueba el pago
-          startPolling(phone);
+          try {
+            const formData = new FormData();
+            formData.append("phone", phone);
+            formData.append("isTrial", "false");
+            
+            const screenshotInput = document.getElementById("screenshot");
+            if (screenshotInput && screenshotInput.files && screenshotInput.files[0]) {
+              formData.append("screenshot", screenshotInput.files[0]);
+            }
+
+            const response = await fetch("/api/validate-payment", {
+              method: "POST",
+              body: formData,
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json().catch(() => ({}));
+              throw new Error(errorData.message || "Error del servidor");
+            }
+
+            const data = await response.json();
+
+            if (data.success) {
+              localStorage.setItem("bingo_phone", phone);
+              localStorage.setItem("bingo_request_token", data.requestToken);
+              showStatusMode(phone);
+              
+              // Guardar preview de la captura para mostrarla en el chat simulado
+              if (screenshotInput && screenshotInput.files && screenshotInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                  localStorage.setItem("bingo_screenshot_preview", e.target.result);
+                  window.open(`/demo-whatsapp?phone=${phone}`, "_blank");
+                };
+                reader.readAsDataURL(screenshotInput.files[0]);
+              } else {
+                localStorage.removeItem("bingo_screenshot_preview");
+                window.open(`/demo-whatsapp?phone=${phone}`, "_blank");
+              }
+              
+              startPolling(data.requestToken);
+            }
+          } catch (err) {
+            console.error("Error al registrar compra demo:", err);
+            alert("Error al registrar compra: " + err.message);
+          } finally {
+            btnValidate.disabled = false;
+            btnValidate.innerText = originalText;
+          }
         }
       });
 
